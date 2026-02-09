@@ -12,7 +12,6 @@ import {
   Instagram,
   Facebook,
   ArrowRight,
-  Mountain,
   CheckCircle,
   AlertCircle,
 } from "lucide-react";
@@ -577,15 +576,17 @@ export default function ContactPage() {
 
             <div
               className="rounded-2xl overflow-hidden aspect-[16/7] relative"
-              style={{ backgroundColor: "#1a1a1a", border: "1px solid #2a2a2a" }}
+              style={{ border: "1px solid #2a2a2a" }}
             >
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <Mountain className="w-20 h-20 mb-4" style={{ color: "rgba(212,136,28,0.2)" }} />
-                <p className="text-white font-semibold text-lg">Bristol, Tennessee</p>
-                <p className="text-sm" style={{ color: "#6b7280" }}>
-                  Google Maps embed placeholder
-                </p>
-              </div>
+              <iframe
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d51329.96853285122!2d-82.2231!3d36.5951!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x885a7907e50c2481%3A0x594bfcfad5588285!2sBristol%2C%20TN!5e0!3m2!1sen!2sus!4v1700000000000"
+                className="absolute inset-0 w-full h-full"
+                style={{ border: 0, filter: "invert(90%) hue-rotate(180deg) contrast(0.9)" }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                title="423D Built - Bristol, Tennessee"
+              />
             </div>
           </AnimatedSection>
         </div>

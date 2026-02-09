@@ -160,8 +160,19 @@ const placeholderItems: GalleryItem[] = [
  * Convert a raw product object from the /api/products response
  * into the GalleryItem shape used by this page.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function mapDbProduct(raw: any): GalleryItem {
+interface DbGalleryProduct {
+  id: string;
+  name: string;
+  slug: string;
+  category: string;
+  description?: string;
+  shortDescription?: string;
+  material?: string;
+  dimensions?: string;
+  images?: string;
+}
+
+function mapDbProduct(raw: DbGalleryProduct): GalleryItem {
   // Parse the JSON images field (stored as a JSON string in the DB)
   let firstImage: string | undefined;
   try {

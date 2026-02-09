@@ -8,13 +8,10 @@ import {
   Check,
   X,
   Building2,
-  CreditCard,
   Receipt,
   Bell,
   Lock,
   Power,
-  Eye,
-  EyeOff,
 } from "lucide-react";
 
 // ============================================
@@ -25,8 +22,6 @@ import {
 interface GeneralSettings {
   business_name: string;
   business_tagline: string;
-  stripe_public_key: string;
-  stripe_secret_key: string;
   tax_rate: string;
   tax_label: string;
   email_notifications_orders: string;
@@ -38,8 +33,6 @@ interface GeneralSettings {
 const DEFAULT_SETTINGS: GeneralSettings = {
   business_name: "423D Built",
   business_tagline: "3D Printing & Laser Engraving - Bristol, TN",
-  stripe_public_key: "",
-  stripe_secret_key: "",
   tax_rate: "9.75",
   tax_label: "TN Sales Tax (Bristol)",
   email_notifications_orders: "true",
@@ -54,8 +47,6 @@ export default function AdminSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [showStripeSecret, setShowStripeSecret] = useState(false);
-
   // Password change state
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
@@ -181,12 +172,6 @@ export default function AdminSettingsPage() {
     }
   };
 
-  // Mask API key
-  const maskKey = (key: string): string => {
-    if (!key || key.length < 12) return key;
-    return key.substring(0, 8) + "..." + key.substring(key.length - 4);
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -279,71 +264,6 @@ export default function AdminSettingsPage() {
                 }
                 className="w-full px-4 py-2.5 bg-[#0a0a0a] border border-[#333] rounded-lg text-sm text-white focus:outline-none focus:border-[#D4881C]"
               />
-            </div>
-          </div>
-        </div>
-
-        {/* Stripe Configuration */}
-        <div className="bg-[#111] border border-[#222] rounded-xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-[#222] flex items-center gap-3">
-            <div
-              className="w-8 h-8 rounded-lg flex items-center justify-center"
-              style={{ backgroundColor: "rgba(212,136,28,0.15)" }}
-            >
-              <CreditCard size={16} style={{ color: "#D4881C" }} />
-            </div>
-            <h2 className="text-lg font-semibold">Stripe Configuration</h2>
-          </div>
-          <div className="p-6 space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">
-                Publishable Key
-              </label>
-              <input
-                type="text"
-                value={settings.stripe_public_key}
-                onChange={(e) =>
-                  handleChange("stripe_public_key", e.target.value)
-                }
-                placeholder="pk_live_..."
-                className="w-full px-4 py-2.5 bg-[#0a0a0a] border border-[#333] rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#D4881C] font-mono"
-              />
-              {settings.stripe_public_key && (
-                <p className="text-xs text-gray-500 mt-1">
-                  Current: {maskKey(settings.stripe_public_key)}
-                </p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">
-                Secret Key
-              </label>
-              <div className="relative">
-                <input
-                  type={showStripeSecret ? "text" : "password"}
-                  value={settings.stripe_secret_key}
-                  onChange={(e) =>
-                    handleChange("stripe_secret_key", e.target.value)
-                  }
-                  placeholder="sk_live_..."
-                  className="w-full px-4 py-2.5 pr-10 bg-[#0a0a0a] border border-[#333] rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#D4881C] font-mono"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowStripeSecret(!showStripeSecret)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
-                >
-                  {showStripeSecret ? (
-                    <EyeOff size={16} />
-                  ) : (
-                    <Eye size={16} />
-                  )}
-                </button>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Note: It is recommended to use environment variables for API
-                keys. This field is for initial setup convenience.
-              </p>
             </div>
           </div>
         </div>
