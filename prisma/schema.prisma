@@ -1,0 +1,165 @@
+// ============================================
+// 423D Built - Prisma Schema
+// SQLite for local development
+// Switch to PostgreSQL for production
+// ============================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// Models (SQLite doesn't support enums, using String)
+// ============================================
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  passwordHash String   @map("password_hash")
+  role         String   @default("EDITOR") // ADMIN | EDITOR
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model Product {
+  id                  String   @id @default(cuid())
+  name                String
+  slug                String   @unique
+  description         String?
+  shortDescription    String?  @map("short_description")
+  category            String   @default("OTHER") // PRINTING_3D | LASER_ENGRAVE | DESIGN | OTHER
+  price               Int      // Price in cents
+  compareAtPrice      Int?     @map("compare_at_price")
+  material            String?
+  color               String?
+  dimensions          String?
+  weight              Float?
+  images              String   @default("[]") // JSON array of image URLs
+  featured            Boolean  @default(false)
+  active              Boolean  @default(true)
+  inventory           Int      @default(0)
+  madeToOrder         Boolean  @default(false) @map("made_to_order")
+  customizable        Boolean  @default(false)
+  customizationPrompt String?  @map("customization_prompt")
+  stripePriceId       String?  @map("stripe_price_id")
+  stripeProductId     String?  @map("stripe_product_id")
+  tags                String   @default("[]") // JSON array of tags
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  orderItems OrderItem[]
+  cartItems  CartItem[]
+
+  @@map("products")
+}
+
+model Order {
+  id                    String   @id @default(cuid())
+  orderNumber           String   @unique @map("order_number")
+  customerEmail         String   @map("customer_email")
+  customerName          String   @map("customer_name")
+  customerPhone         String?  @map("customer_phone")
+  shippingAddress       String   @map("shipping_address") // JSON
+  billingAddress        String?  @map("billing_address") // JSON
+  items                 OrderItem[]
+  subtotal              Int
+  shippingCost          Int      @default(0) @map("shipping_cost")
+  taxAmount             Int      @default(0) @map("tax_amount")
+  total                 Int
+  status                String   @default("PENDING") // PENDING | PAID | PROCESSING | SHIPPED | DELIVERED | CANCELLED | REFUNDED
+  paymentStatus         String   @default("PENDING") @map("payment_status") // PENDING | PAID | REFUNDED
+  stripeSessionId       String?  @unique @map("stripe_session_id")
+  stripePaymentIntentId String?  @unique @map("stripe_payment_intent_id")
+  trackingNumber        String?  @map("tracking_number")
+  trackingCarrier       String?  @map("tracking_carrier")
+  shippoTransactionId   String?  @map("shippo_transaction_id")
+  labelUrl              String?  @map("label_url")
+  notes                 String?
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id            String   @id @default(cuid())
+  orderId       String   @map("order_id")
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId     String?  @map("product_id")
+  product       Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  productName   String   @map("product_name")
+  quantity      Int
+  unitPrice     Int      @map("unit_price")
+  customization String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("order_items")
+}
+
+model ServiceInquiry {
+  id             String   @id @default(cuid())
+  customerName   String   @map("customer_name")
+  customerEmail  String   @map("customer_email")
+  customerPhone  String?  @map("customer_phone")
+  company        String?
+  serviceType    String   @map("service_type") // PRINTING_3D | LASER_ENGRAVING | DESIGN | CONSULTATION
+  description    String
+  material       String?
+  color          String?
+  quantity       Int      @default(1)
+  fileUrls       String   @default("[]") @map("file_urls") // JSON array
+  timeline       String   @default("STANDARD") // STANDARD | RUSH | FLEXIBLE
+  budget         String?
+  referralSource String?  @map("referral_source")
+  status         String   @default("NEW") // NEW | REVIEWED | QUOTED | ACCEPTED | IN_PROGRESS | COMPLETED | CANCELLED
+  quotedPrice    Int?     @map("quoted_price")
+  adminNotes     String?  @map("admin_notes")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@map("service_inquiries")
+}
+
+model SiteContent {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  type      String   @default("TEXT") // TEXT | HTML | IMAGE | JSON
+  section   String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("site_content")
+}
+
+model ShippingSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("shipping_settings")
+}
+
+model CartItem {
+  id            String   @id @default(cuid())
+  sessionId     String   @map("session_id")
+  productId     String   @map("product_id")
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity      Int      @default(1)
+  customization String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("cart_items")
+}

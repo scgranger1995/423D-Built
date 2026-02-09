@@ -1,0 +1,41 @@
+# ============================================
+# 423D Built - Development Docker Compose
+# ============================================
+# Provides just the PostgreSQL database for local development.
+# The Next.js app runs on your host machine with `npm run dev`.
+#
+# Usage:
+#   docker compose -f docker-compose.dev.yml up -d    # Start database
+#   docker compose -f docker-compose.dev.yml down      # Stop database
+#   docker compose -f docker-compose.dev.yml down -v   # Stop and DELETE data
+#
+# Connection string for .env:
+#   DATABASE_URL="postgresql://postgres:postgres@localhost:5432/fourtwentythree_d_built?schema=public"
+# ============================================
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: 423d-dev-db
+    restart: unless-stopped
+    ports:
+      # Map PostgreSQL to localhost:5432 for local development
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: fourtwentythree_d_built
+    volumes:
+      # Named volume for persistent development data
+      - pgdata_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d fourtwentythree_d_built"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  pgdata_dev:
+    name: 423d-pgdata-dev
+    driver: local

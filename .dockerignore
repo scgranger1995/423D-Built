@@ -1,0 +1,74 @@
+# ============================================
+# 423D Built - Docker Ignore
+# ============================================
+# Prevents unnecessary files from being sent
+# to the Docker build context, speeding up builds
+# and reducing image size.
+# ============================================
+
+# ---- Dependencies ----
+# These are installed fresh inside the container
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-store
+
+# ---- Build Output ----
+# The build happens inside the container
+.next
+out
+dist
+build
+
+# ---- Version Control ----
+.git
+.gitignore
+
+# ---- Environment Files ----
+# Secrets must NEVER be baked into the image
+# Pass them via docker-compose env_file or environment variables
+.env
+.env.*
+.env.local
+.env.development
+.env.production
+.env.test
+
+# ---- Docker Files (prevent recursive context) ----
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+
+# ---- IDE / Editor ----
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# ---- Documentation ----
+*.md
+LICENSE
+CHANGELOG*
+
+# ---- Scripts (not needed in the image) ----
+scripts/backup.sh
+
+# ---- Testing ----
+__tests__
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+jest.config.*
+cypress
+.nyc_output
+coverage
+
+# ---- Misc ----
+.husky
+.eslintcache
+.turbo
+tsconfig.tsbuildinfo

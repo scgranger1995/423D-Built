@@ -1,0 +1,70 @@
+{
+  "name": "423d-built",
+  "version": "1.0.0",
+  "description": "423D Built - 3D printing and laser engraving service based in Bristol, Tennessee. Full-stack e-commerce with admin dashboard, Stripe payments, and shipping integration.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:generate": "prisma generate",
+    "db:seed": "prisma db seed",
+    "db:studio": "prisma studio",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:build": "docker compose up -d --build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/scgranger1995/423D-Built.git"
+  },
+  "keywords": [
+    "3d-printing",
+    "laser-engraving",
+    "nextjs",
+    "ecommerce",
+    "stripe",
+    "prisma"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/scgranger1995/423D-Built/issues"
+  },
+  "homepage": "https://github.com/scgranger1995/423D-Built#readme",
+  "dependencies": {
+    "@prisma/client": "^6.19.2",
+    "@stripe/react-stripe-js": "^5.6.0",
+    "@stripe/stripe-js": "^8.7.0",
+    "bcryptjs": "^3.0.3",
+    "framer-motion": "^12.33.0",
+    "lucide-react": "^0.563.0",
+    "next": "^16.1.6",
+    "next-auth": "^5.0.0-beta.30",
+    "prisma": "^6.19.2",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "sharp": "^0.34.5",
+    "stripe": "^20.3.1",
+    "uuid": "^13.0.0"
+  },
+  "prisma": {
+    "seed": "npx tsx scripts/seed.ts"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.18",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^25.2.2",
+    "@types/react": "^19.2.13",
+    "@types/uuid": "^10.0.0",
+    "eslint": "^10.0.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.18",
+    "tsx": "^4.19.0",
+    "typescript": "^5.9.3"
+  }
+}

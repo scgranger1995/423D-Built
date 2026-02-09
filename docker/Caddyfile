@@ -1,0 +1,109 @@
+# ============================================
+# 423D Built - Caddy Reverse Proxy Configuration
+# ============================================
+# Caddy automatically provisions and renews TLS certificates
+# via Let's Encrypt when a real domain is configured.
+#
+# Set the DOMAIN environment variable in your .env or
+# docker-compose.yml to your production domain:
+#   DOMAIN=423dbuilt.com
+#
+# For local development, it defaults to localhost (self-signed cert).
+# ============================================
+
+{$DOMAIN:localhost} {
+	# ---- Compression ----
+	# Enable gzip and zstd compression for all responses
+	encode gzip zstd
+
+	# ---- Security Headers ----
+	header {
+		# Prevent MIME type sniffing
+		X-Content-Type-Options "nosniff"
+
+		# Clickjacking protection
+		X-Frame-Options "SAMEORIGIN"
+
+		# XSS protection (legacy browsers)
+		X-XSS-Protection "1; mode=block"
+
+		# Referrer policy - send origin for cross-origin, full for same-origin
+		Referrer-Policy "strict-origin-when-cross-origin"
+
+		# Permissions policy - disable unnecessary browser features
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(self)"
+
+		# Strict Transport Security - enforce HTTPS for 1 year
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+
+		# Remove the Server header to avoid fingerprinting
+		-Server
+	}
+
+	# ---- CORS Headers for Stripe Webhooks ----
+	# Stripe sends POST requests to /api/webhooks/stripe
+	# These headers ensure Stripe can reach the webhook endpoint
+	@stripe_webhook {
+		path /api/webhooks/stripe
+		method POST OPTIONS
+	}
+	header @stripe_webhook {
+		Access-Control-Allow-Origin "https://api.stripe.com"
+		Access-Control-Allow-Methods "POST, OPTIONS"
+		Access-Control-Allow-Headers "Content-Type, Stripe-Signature"
+		Access-Control-Max-Age "86400"
+	}
+
+	# Handle CORS preflight for Stripe webhooks
+	@stripe_preflight {
+		path /api/webhooks/stripe
+		method OPTIONS
+	}
+	respond @stripe_preflight 204
+
+	# ---- Serve Uploaded Files Directly ----
+	# Bypass Node.js for static uploaded files (images, attachments)
+	# Files are served from the shared Docker volume mounted at /srv/uploads
+	handle_path /uploads/* {
+		root * /srv/uploads
+		file_server {
+			# Disable directory browsing for security
+			browse
+		}
+
+		# Cache uploaded images for 7 days
+		header Cache-Control "public, max-age=604800, immutable"
+	}
+
+	# ---- Reverse Proxy to Next.js App ----
+	# Forward all other requests to the Next.js application container
+	reverse_proxy app:3000 {
+		# Pass real client IP to the application
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+
+		# Health check configuration
+		health_uri /
+		health_interval 30s
+		health_timeout 10s
+		health_status 200
+
+		# Transport settings
+		transport http {
+			# Keepalive connections to the backend
+			keepalive 30s
+			keepalive_idle_conns 10
+		}
+	}
+
+	# ---- Logging ----
+	log {
+		output file /data/logs/access.log {
+			roll_size 10mb
+			roll_keep 5
+			roll_keep_for 168h
+		}
+		format json
+	}
+}

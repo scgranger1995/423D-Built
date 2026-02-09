@@ -1,0 +1,121 @@
+# ============================================
+# 423D Built - Production Docker Compose
+# ============================================
+# Usage:
+#   docker compose up -d --build     # Build and start all services
+#   docker compose down               # Stop all services
+#   docker compose logs -f app        # Follow app logs
+#
+# Migration between servers:
+#   1. Copy this file, .env, and Caddyfile to the new server
+#   2. Transfer volume data (pgdata, uploads) or restore from backup
+#   3. Run: docker compose up -d --build
+# ============================================
+
+services:
+  # ---- Next.js Application ----
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: 423d-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      # Override DATABASE_URL to use the Docker network hostname
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-fourtwentythree_d_built}?schema=public"
+      NODE_ENV: production
+    volumes:
+      # Persist uploaded files (product images, inquiry attachments, etc.)
+      - uploads:/app/uploads
+    networks:
+      - 423d-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
+
+  # ---- PostgreSQL Database ----
+  db:
+    image: postgres:16-alpine
+    container_name: 423d-db
+    restart: unless-stopped
+    ports:
+      # Expose to host for direct database access (optional, remove in hardened setup)
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-fourtwentythree_d_built}
+    volumes:
+      # Persist database data across container restarts
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - 423d-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-fourtwentythree_d_built}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ---- Caddy Reverse Proxy (HTTPS / SSL) ----
+  caddy:
+    image: caddy:2-alpine
+    container_name: 423d-caddy
+    restart: unless-stopped
+    ports:
+      # HTTP - Caddy will redirect to HTTPS automatically
+      - "80:80"
+      # HTTPS - Caddy handles automatic TLS certificates via Let's Encrypt
+      - "443:443"
+      # HTTPS UDP (for HTTP/3 / QUIC support)
+      - "443:443/udp"
+    environment:
+      # Set your production domain here or in .env
+      DOMAIN: ${DOMAIN:-localhost}
+    volumes:
+      # Caddy configuration file
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      # Persist TLS certificates and Caddy state
+      - caddy_data:/data
+      # Caddy configuration state
+      - caddy_config:/config
+      # Serve uploaded files directly through Caddy (bypasses Node.js for static files)
+      - uploads:/srv/uploads:ro
+    networks:
+      - 423d-network
+    depends_on:
+      - app
+
+# ---- Named Volumes ----
+# These persist data across container restarts and rebuilds.
+# To migrate: back up these volumes and restore on the new server.
+volumes:
+  pgdata:
+    name: 423d-pgdata
+    driver: local
+  uploads:
+    name: 423d-uploads
+    driver: local
+  caddy_data:
+    name: 423d-caddy-data
+    driver: local
+  caddy_config:
+    name: 423d-caddy-config
+    driver: local
+
+# ---- Network ----
+# All services communicate over this internal bridge network.
+networks:
+  423d-network:
+    name: 423d-network
+    driver: bridge

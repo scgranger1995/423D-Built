@@ -1,0 +1,196 @@
+@import "tailwindcss";
+
+/* ============================================
+   423D Built - Global Styles
+   Brand: Gold/Black theme for 3D printing
+   and laser engraving services
+   ============================================ */
+
+@theme {
+  --color-gold: #D4881C;
+  --color-gold-light: #E8A83E;
+  --color-gold-dark: #B06E0F;
+  --color-black: #000000;
+  --color-dark: #111111;
+  --color-dark-gray: #1a1a1a;
+  --color-white: #FFFFFF;
+  --color-off-white: #F5F5F5;
+
+  --font-heading: "Playfair Display", Georgia, serif;
+  --font-body: "Inter", system-ui, sans-serif;
+}
+
+/* ============================================
+   Base Styles
+   ============================================ */
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-dark);
+  color: var(--color-off-white);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+}
+
+/* ============================================
+   Custom Scrollbar - Gold/Black Theme
+   ============================================ */
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-dark);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-gold-dark);
+  border-radius: 5px;
+  border: 2px solid var(--color-dark);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-gold);
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--color-dark);
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-gold-dark) var(--color-dark);
+}
+
+/* ============================================
+   Gold Gradient Animation
+   ============================================ */
+
+@keyframes gold-shimmer {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+.gold-gradient {
+  background: linear-gradient(
+    90deg,
+    var(--color-gold-dark) 0%,
+    var(--color-gold) 25%,
+    var(--color-gold-light) 50%,
+    var(--color-gold) 75%,
+    var(--color-gold-dark) 100%
+  );
+  background-size: 200% auto;
+}
+
+.gold-gradient-animated {
+  background: linear-gradient(
+    90deg,
+    var(--color-gold-dark) 0%,
+    var(--color-gold) 25%,
+    var(--color-gold-light) 50%,
+    var(--color-gold) 75%,
+    var(--color-gold-dark) 100%
+  );
+  background-size: 200% auto;
+  animation: gold-shimmer 3s linear infinite;
+}
+
+.gold-gradient-text {
+  background: linear-gradient(
+    90deg,
+    var(--color-gold-dark),
+    var(--color-gold),
+    var(--color-gold-light),
+    var(--color-gold)
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gold-gradient-text-animated {
+  background: linear-gradient(
+    90deg,
+    var(--color-gold-dark),
+    var(--color-gold),
+    var(--color-gold-light),
+    var(--color-gold)
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gold-shimmer 3s linear infinite;
+}
+
+/* ============================================
+   Gold Border Glow Effect
+   ============================================ */
+
+.gold-glow {
+  box-shadow: 0 0 10px rgba(212, 136, 28, 0.3),
+    0 0 20px rgba(212, 136, 28, 0.1);
+}
+
+.gold-glow-hover:hover {
+  box-shadow: 0 0 15px rgba(212, 136, 28, 0.5),
+    0 0 30px rgba(212, 136, 28, 0.2);
+}
+
+/* ============================================
+   Selection Styles
+   ============================================ */
+
+::selection {
+  background-color: var(--color-gold);
+  color: var(--color-black);
+}
+
+::-moz-selection {
+  background-color: var(--color-gold);
+  color: var(--color-black);
+}
+
+/* ============================================
+   Focus Styles (Accessibility)
+   ============================================ */
+
+:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 2px;
+}
+
+/* ============================================
+   Utility Classes
+   ============================================ */
+
+.text-balance {
+  text-wrap: balance;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
