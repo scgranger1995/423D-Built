@@ -545,7 +545,7 @@ model Order {
   total         Decimal  @db.Decimal(10, 2)
 
   // Payment
-  paymentMethod  String?  // "stripe", "square", "paypal", etc.
+  paymentMethod  String?  // "square", "square", "paypal", etc.
   paymentId      String?  // External payment ID
   paymentStatus  PaymentStatus @default(PENDING)
 
@@ -797,7 +797,7 @@ model SiteSettings {
   //
   // "payment":
   // {
-  //   "provider": "stripe",
+  //   "provider": "square",
   //   "currency": "USD",
   //   "taxRate": 9.75,
   //   "taxEnabled": true
@@ -1230,8 +1230,8 @@ services:
       NEXTAUTH_URL: ${NEXT_PUBLIC_SITE_URL:-https://423dbuilt.com}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:?Set NEXTAUTH_SECRET in .env}
       SHIPPO_API_KEY: ${SHIPPO_API_KEY:-}
-      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
-      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      SQUARE_SECRET_KEY: ${SQUARE_SECRET_KEY:-}
+      SQUARE_WEBHOOK_SECRET: ${SQUARE_WEBHOOK_SECRET:-}
       UPLOAD_DIR: /app/uploads
     volumes:
       - uploads_data:/app/uploads
@@ -1616,11 +1616,11 @@ SHIPPO_API_KEY=             # From https://apps.goshippo.com/settings/api
 SHIPPO_WEBHOOK_SECRET=      # Webhook verification secret
 
 # ============================================================
-# Payment (Stripe -- or swap for Square/PayPal)
+# Payment (Square -- or swap for Square/PayPal)
 # ============================================================
-STRIPE_SECRET_KEY=
-STRIPE_PUBLISHABLE_KEY=
-STRIPE_WEBHOOK_SECRET=
+SQUARE_SECRET_KEY=
+SQUARE_PUBLISHABLE_KEY=
+SQUARE_WEBHOOK_SECRET=
 
 # ============================================================
 # Email (optional -- for order confirmations, inquiry responses)
@@ -1784,7 +1784,7 @@ npx prisma migrate dev --name add_product_weight_field
     "framer-motion": "^11.15.0",
     "sharp": "^0.33.0",
     "shippo": "^3.0.0",
-    "stripe": "^17.0.0",
+    "square": "^17.0.0",
     "nodemailer": "^6.9.0",
     "clsx": "^2.1.0",
     "tailwind-merge": "^2.6.0",
@@ -2019,7 +2019,7 @@ async function main() {
     {
       key: "payment",
       value: {
-        provider: "stripe",
+        provider: "square",
         currency: "USD",
         taxRate: 9.75,
         taxEnabled: true,
@@ -2076,7 +2076,7 @@ main()
 1. **Provision a VPS** (e.g., DigitalOcean Droplet, Hetzner, Linode) -- 2GB RAM minimum
 2. **Install Docker & Docker Compose** on the server
 3. **Clone the repo** and copy `.env.example` to `.env`
-4. **Fill in `.env`** -- generate secrets, add Shippo/Stripe keys
+4. **Fill in `.env`** -- generate secrets, add Shippo/Square keys
 5. **Point your domain** (DNS A record) to the server IP
 6. **Get SSL certificate** with Certbot
 7. **Run `docker compose up -d`** -- PostgreSQL, Next.js, and Nginx all start

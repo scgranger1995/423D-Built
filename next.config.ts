@@ -19,7 +19,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "*.stripe.com",
+        hostname: "*.squarecdn.com",
       },
     ],
   },

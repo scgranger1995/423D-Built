@@ -3,24 +3,24 @@ import { prisma } from "@/lib/prisma";
 
 // ============================================
 // Public Order Lookup API
-// GET: Look up an order by Stripe session ID
+// GET: Look up an order by Square order ID
 // ============================================
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const sessionId = searchParams.get("session_id");
+    const orderId = searchParams.get("order_id");
 
-    if (!sessionId) {
+    if (!orderId) {
       return NextResponse.json(
-        { error: "session_id query parameter is required" },
+        { error: "order_id query parameter is required" },
         { status: 400 }
       );
     }
 
-    // Look up the order by Stripe session ID
+    // Look up the order by Square order ID
     const order = await prisma.order.findUnique({
-      where: { stripeSessionId: sessionId },
+      where: { squareOrderId: orderId },
       include: { items: true },
     });
 

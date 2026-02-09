@@ -68,7 +68,7 @@ export default function CheckoutPage() {
         }
 
         if (data.url) {
-          // Redirect to Stripe Checkout
+          // Redirect to Square Checkout
           window.location.href = data.url;
         } else {
           throw new Error("No checkout URL returned");
@@ -194,7 +194,7 @@ export default function CheckoutPage() {
         {/* Security Badge */}
         <div className="mt-8 flex items-center justify-center gap-2 text-xs text-white/40">
           <ShieldCheck className="h-4 w-4" />
-          256-bit SSL encrypted checkout via Stripe
+          256-bit SSL encrypted secure checkout
         </div>
       </motion.div>
     </div>

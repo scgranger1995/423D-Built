@@ -289,7 +289,7 @@ function OrderDetailsCard({ order }: { order: OrderData }) {
 // Processing Fallback (webhook hasn't fired yet)
 // ============================================
 
-function ProcessingFallback({ sessionId }: { sessionId: string }) {
+function ProcessingFallback({ orderId }: { orderId: string }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -309,9 +309,9 @@ function ProcessingFallback({ sessionId }: { sessionId: string }) {
         <p className="text-xs text-white/40">
           Reference:{" "}
           <span className="font-mono text-white/60">
-            {sessionId.length > 30
-              ? `${sessionId.slice(0, 15)}...${sessionId.slice(-10)}`
-              : sessionId}
+            {orderId.length > 30
+              ? `${orderId.slice(0, 15)}...${orderId.slice(-10)}`
+              : orderId}
           </span>
         </p>
       </div>
@@ -337,17 +337,17 @@ function SuccessContent() {
   const retryCount = useRef(0);
   const maxRetries = 5;
 
-  const sessionId = searchParams.get("session_id");
+  const orderId = searchParams.get("orderId");
 
   // Fetch order details from the API
   const fetchOrder = useCallback(async () => {
-    if (!sessionId) {
+    if (!orderId) {
       setOrderLoading(false);
       return;
     }
 
     try {
-      const res = await fetch(`/api/orders?session_id=${encodeURIComponent(sessionId)}`);
+      const res = await fetch(`/api/orders?order_id=${encodeURIComponent(orderId)}`);
       if (res.ok) {
         const data: OrderData = await res.json();
         setOrder(data);
@@ -370,7 +370,7 @@ function SuccessContent() {
       setOrderLoading(false);
       setOrderNotFound(true);
     }
-  }, [sessionId]);
+  }, [orderId]);
 
   // Clear cart on mount (once)
   useEffect(() => {
@@ -476,7 +476,7 @@ function SuccessContent() {
           </p>
 
           {/* Order Details or Processing Fallback */}
-          {sessionId && (
+          {orderId && (
             <>
               {orderLoading ? (
                 <motion.div
@@ -493,7 +493,7 @@ function SuccessContent() {
               ) : order ? (
                 <OrderDetailsCard order={order} />
               ) : orderNotFound ? (
-                <ProcessingFallback sessionId={sessionId} />
+                <ProcessingFallback orderId={orderId} />
               ) : null}
             </>
           )}

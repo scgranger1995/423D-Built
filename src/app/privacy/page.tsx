@@ -279,22 +279,22 @@ export default function PrivacyPolicyPage() {
           {/* Section 3 */}
           <PolicySection id="payment-processing" number="03" title="Payment Processing">
             <p>
-              We use <strong className="text-white">Stripe</strong> as our third-party payment processor.
+              We use <strong className="text-white">Square</strong> as our third-party payment processor.
               When you make a purchase, your payment information (credit card number, expiration date,
-              and CVV) is transmitted directly to Stripe through their secure, PCI-compliant platform.
+              and CVV) is transmitted directly to Square through their secure, PCI-compliant platform.
             </p>
             <p>
               <strong className="text-white">We do not store, process, or have access to your full
-              credit card details.</strong> Stripe may retain certain transaction information in
+              credit card details.</strong> Square may retain certain transaction information in
               accordance with their own privacy policy, which you can review at{" "}
               <a
-                href="https://stripe.com/privacy"
+                href="https://squareup.com/us/en/legal/general/privacy"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="underline transition-colors"
                 style={{ color: "#D4881C" }}
               >
-                stripe.com/privacy
+                squareup.com/privacy
               </a>.
             </p>
             <p>
@@ -363,7 +363,7 @@ export default function PrivacyPolicyPage() {
             <p>We may share your information only in the following limited circumstances:</p>
             <ul className="list-none space-y-2">
               {[
-                "Payment Processing: With Stripe to process your payments securely.",
+                "Payment Processing: With Square to process your payments securely.",
                 "Shipping Carriers: With shipping carriers (e.g., USPS, UPS, FedEx) to deliver your orders. This includes your name, shipping address, and phone number if required for delivery.",
                 "Analytics Providers: With analytics services (e.g., Google Analytics) in aggregated or anonymized form to help us understand website usage.",
                 "Legal Requirements: If required by law, subpoena, court order, or government request, or to protect our rights, property, or safety, or the rights, property, or safety of others.",
@@ -416,7 +416,7 @@ export default function PrivacyPolicyPage() {
             <ul className="list-none space-y-2">
               {[
                 "Encryption of data in transit using SSL/TLS (HTTPS) across our entire website.",
-                "Secure, encrypted payment processing through Stripe's PCI DSS-compliant infrastructure.",
+                "Secure, encrypted payment processing through Square's PCI DSS-compliant infrastructure.",
                 "Access controls limiting who within our organization can access personal data.",
                 "Regular review of our data collection, storage, and processing practices.",
               ].map((item, i) => (

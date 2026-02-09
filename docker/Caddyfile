@@ -40,26 +40,26 @@
 		-Server
 	}
 
-	# ---- CORS Headers for Stripe Webhooks ----
-	# Stripe sends POST requests to /api/webhooks/stripe
-	# These headers ensure Stripe can reach the webhook endpoint
-	@stripe_webhook {
-		path /api/webhooks/stripe
+	# ---- CORS Headers for Square Webhooks ----
+	# Square sends POST requests to /api/webhooks/square
+	# These headers ensure Square can reach the webhook endpoint
+	@square_webhook {
+		path /api/webhooks/square
 		method POST OPTIONS
 	}
-	header @stripe_webhook {
-		Access-Control-Allow-Origin "https://api.stripe.com"
+	header @square_webhook {
+		Access-Control-Allow-Origin "https://connect.squareup.com"
 		Access-Control-Allow-Methods "POST, OPTIONS"
-		Access-Control-Allow-Headers "Content-Type, Stripe-Signature"
+		Access-Control-Allow-Headers "Content-Type, X-Square-HmacSha256-Signature"
 		Access-Control-Max-Age "86400"
 	}
 
-	# Handle CORS preflight for Stripe webhooks
-	@stripe_preflight {
-		path /api/webhooks/stripe
+	# Handle CORS preflight for Square webhooks
+	@square_preflight {
+		path /api/webhooks/square
 		method OPTIONS
 	}
-	respond @stripe_preflight 204
+	respond @square_preflight 204
 
 	# ---- Serve Uploaded Files Directly ----
 	# Bypass Node.js for static uploaded files (images, attachments)

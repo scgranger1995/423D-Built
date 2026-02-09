@@ -1,5 +1,3 @@
-import type { Product, CartItem } from "@prisma/client";
-
 type OrderStatus = string;
 type PaymentStatus = string;
 type ServiceType = string;
@@ -8,11 +6,6 @@ type InquiryTimeline = string;
 // ============================================
 // Cart Types
 // ============================================
-
-/** CartItem with its related Product data populated */
-export interface CartItemWithProduct extends CartItem {
-  product: Product;
-}
 
 /** Item structure used during checkout */
 export interface CheckoutItem {

@@ -346,7 +346,7 @@ export default function CartPage() {
                 {/* Security Note */}
                 <div className="mt-4 flex items-center justify-center gap-2 text-xs text-white/40">
                   <ShieldCheck className="h-3.5 w-3.5" />
-                  Secure checkout powered by Stripe
+                  Secure checkout powered by Square
                 </div>
 
                 {/* Shipping & Returns */}

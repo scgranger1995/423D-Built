@@ -1,12 +1,13 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/auth";
-import { getStripe } from "@/lib/stripe";
+import { getSquareClient } from "@/lib/square";
+import crypto from "crypto";
 
 // ============================================
 // Admin Products API - CRUD Operations
 // GET: List all products (including inactive)
-// POST: Create new product (with Stripe sync)
+// POST: Create new product (with Square sync)
 // PUT: Update product
 // PATCH: Bulk actions (activate/deactivate/delete)
 // DELETE: Delete single product
@@ -68,7 +69,6 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const authResult = await requireAdminApi();
   if (!authResult.authorized) return authResult.response;
-  const stripe = getStripe();
 
   try {
     const body = await request.json();
@@ -113,35 +113,49 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create Stripe product and price
-    let stripeProductId: string | null = null;
-    let stripePriceId: string | null = null;
+    // Create Square catalog item with a variation
+    let squareCatalogId: string | null = null;
+    let squareVariationId: string | null = null;
 
     try {
-      if (process.env.STRIPE_SECRET_KEY) {
-        const stripeProduct = await stripe.products.create({
-          name,
-          description: shortDescription || description || undefined,
-          images: images && images.length > 0 ? images.slice(0, 8) : undefined,
-          metadata: {
-            category,
-            slug,
+      if (process.env.SQUARE_ACCESS_TOKEN) {
+        const squareClient = getSquareClient();
+        const priceAmount = typeof price === "number" ? price : parseInt(price);
+
+        const response = await squareClient.catalog.object.upsert({
+          idempotencyKey: crypto.randomUUID(),
+          object: {
+            type: "ITEM",
+            id: "#new-item",
+            itemData: {
+              name,
+              description: shortDescription || description || undefined,
+              variations: [
+                {
+                  type: "ITEM_VARIATION",
+                  id: "#new-variation",
+                  itemVariationData: {
+                    name: "Regular",
+                    pricingType: "FIXED_PRICING",
+                    priceMoney: {
+                      amount: BigInt(priceAmount),
+                      currency: "USD",
+                    },
+                  },
+                },
+              ],
+            },
           },
         });
 
-        stripeProductId = stripeProduct.id;
-
-        const stripePrice = await stripe.prices.create({
-          product: stripeProduct.id,
-          unit_amount: price,
-          currency: "usd",
-        });
-
-        stripePriceId = stripePrice.id;
+        squareCatalogId = response.catalogObject?.id ?? null;
+        const catalogObj = response.catalogObject as { itemData?: { variations?: { id?: string }[] } } | undefined;
+        squareVariationId =
+          catalogObj?.itemData?.variations?.[0]?.id ?? null;
       }
-    } catch (stripeError) {
-      console.error("Stripe sync error (non-fatal):", stripeError);
-      // Continue without Stripe sync - product will still be created locally
+    } catch (squareError) {
+      console.error("Square sync error (non-fatal):", squareError);
+      // Continue without Square sync - product will still be created locally
     }
 
     const product = await prisma.product.create({
@@ -168,8 +182,8 @@ export async function POST(request: NextRequest) {
         madeToOrder: madeToOrder || false,
         customizable: customizable || false,
         customizationPrompt: customizationPrompt || null,
-        stripeProductId,
-        stripePriceId,
+        squareCatalogId,
+        squareVariationId,
         tags: tags || [],
       },
     });
@@ -188,7 +202,6 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   const authResult = await requireAdminApi();
   if (!authResult.authorized) return authResult.response;
-  const stripe = getStripe();
 
   try {
     const { searchParams } = new URL(request.url);
@@ -220,42 +233,77 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    // Update Stripe product if it exists
+    // Update Square catalog item if it exists
+    let updatedSquareVariationId: string | undefined;
     try {
-      if (process.env.STRIPE_SECRET_KEY && existing.stripeProductId) {
-        await stripe.products.update(existing.stripeProductId, {
-          name: body.name || existing.name,
-          description:
-            body.shortDescription ||
-            body.description ||
-            existing.shortDescription ||
-            existing.description ||
-            undefined,
-          images:
-            body.images && body.images.length > 0
-              ? body.images.slice(0, 8)
-              : undefined,
+      if (process.env.SQUARE_ACCESS_TOKEN && existing.squareCatalogId) {
+        const squareClient = getSquareClient();
+
+        // Retrieve current catalog object to get the version (required for updates)
+        const current = await squareClient.catalog.object.get({
+          objectId: existing.squareCatalogId,
+        });
+        const version = current.object?.version;
+        const currentObj = current.object as { itemData?: { variations?: { id?: string }[] } } | undefined;
+        const existingVariationId =
+          existing.squareVariationId ||
+          currentObj?.itemData?.variations?.[0]?.id;
+
+        const priceAmount = body.price
+          ? typeof body.price === "number"
+            ? body.price
+            : parseInt(body.price)
+          : existing.price;
+
+        const variations: Array<Record<string, unknown>> = [];
+        if (existingVariationId) {
+          // Retrieve variation version for update
+          const currentVariation = await squareClient.catalog.object.get({
+            objectId: existingVariationId,
+          });
+          variations.push({
+            type: "ITEM_VARIATION",
+            id: existingVariationId,
+            version: currentVariation.object?.version,
+            itemVariationData: {
+              name: "Regular",
+              pricingType: "FIXED_PRICING",
+              priceMoney: {
+                amount: BigInt(priceAmount),
+                currency: "USD",
+              },
+            },
+          });
+        }
+
+        const response = await squareClient.catalog.object.upsert({
+          idempotencyKey: crypto.randomUUID(),
+          object: {
+            type: "ITEM",
+            id: existing.squareCatalogId,
+            version: version,
+            itemData: {
+              name: body.name || existing.name,
+              description:
+                body.shortDescription ||
+                body.description ||
+                existing.shortDescription ||
+                existing.description ||
+                undefined,
+              variations:
+                variations.length > 0
+                  ? (variations as unknown as undefined)
+                  : undefined,
+            },
+          },
         });
 
-        // If price changed, create a new Stripe price
-        if (body.price && body.price !== existing.price) {
-          const newPrice = await stripe.prices.create({
-            product: existing.stripeProductId,
-            unit_amount: body.price,
-            currency: "usd",
-          });
-          body.stripePriceId = newPrice.id;
-
-          // Archive old price
-          if (existing.stripePriceId) {
-            await stripe.prices.update(existing.stripePriceId, {
-              active: false,
-            });
-          }
-        }
+        const updatedObj = response.catalogObject as { itemData?: { variations?: { id?: string }[] } } | undefined;
+        updatedSquareVariationId =
+          updatedObj?.itemData?.variations?.[0]?.id ?? undefined;
       }
-    } catch (stripeError) {
-      console.error("Stripe update error (non-fatal):", stripeError);
+    } catch (squareError) {
+      console.error("Square update error (non-fatal):", squareError);
     }
 
     const product = await prisma.product.update({
@@ -279,7 +327,7 @@ export async function PUT(request: NextRequest) {
         madeToOrder: body.madeToOrder,
         customizable: body.customizable,
         customizationPrompt: body.customizationPrompt,
-        stripePriceId: body.stripePriceId || undefined,
+        squareVariationId: updatedSquareVariationId || undefined,
         tags: body.tags,
       },
     });
@@ -298,7 +346,6 @@ export async function PUT(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   const authResult = await requireAdminApi();
   if (!authResult.authorized) return authResult.response;
-  const stripe = getStripe();
 
   try {
     const body = await request.json();
@@ -350,7 +397,6 @@ export async function PATCH(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   const authResult = await requireAdminApi();
   if (!authResult.authorized) return authResult.response;
-  const stripe = getStripe();
 
   try {
     const { searchParams } = new URL(request.url);
@@ -367,15 +413,16 @@ export async function DELETE(request: NextRequest) {
       return Response.json({ error: "Product not found" }, { status: 404 });
     }
 
-    // Archive in Stripe if exists
+    // Delete from Square catalog if exists
     try {
-      if (process.env.STRIPE_SECRET_KEY && product.stripeProductId) {
-        await stripe.products.update(product.stripeProductId, {
-          active: false,
+      if (process.env.SQUARE_ACCESS_TOKEN && product.squareCatalogId) {
+        const squareClient = getSquareClient();
+        await squareClient.catalog.object.delete({
+          objectId: product.squareCatalogId,
         });
       }
-    } catch (stripeError) {
-      console.error("Stripe archive error (non-fatal):", stripeError);
+    } catch (squareError) {
+      console.error("Square delete error (non-fatal):", squareError);
     }
 
     await prisma.product.delete({ where: { id } });

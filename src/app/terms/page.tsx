@@ -400,9 +400,9 @@ export default function TermsOfServicePage() {
           {/* Section 7 */}
           <TermsSection id="payment" number="07" title="Payment Terms">
             <p>
-              We accept payment through Stripe, which supports major credit cards, debit cards,
-              and other payment methods as available through the Stripe platform. All payments
-              are processed securely through Stripe&apos;s PCI DSS-compliant infrastructure.
+              We accept payment through Square, which supports major credit cards, debit cards,
+              and other payment methods as available through the Square platform. All payments
+              are processed securely through Square&apos;s PCI DSS-compliant infrastructure.
             </p>
             <p>
               For standard shop purchases, full payment is required at the time of checkout.

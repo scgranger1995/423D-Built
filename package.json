@@ -1,7 +1,7 @@
 {
   "name": "423d-built",
   "version": "1.0.0",
-  "description": "423D Built - 3D printing and laser engraving service based in Bristol, Tennessee. Full-stack e-commerce with admin dashboard, Stripe payments, and shipping integration.",
+  "description": "423D Built - 3D printing and laser engraving service based in Bristol, Tennessee. Full-stack e-commerce with admin dashboard, Square payments, and shipping integration.",
   "main": "index.js",
   "scripts": {
     "dev": "next dev",
@@ -26,7 +26,7 @@
     "laser-engraving",
     "nextjs",
     "ecommerce",
-    "stripe",
+    "square",
     "prisma"
   ],
   "author": "",
@@ -38,8 +38,6 @@
   "homepage": "https://github.com/scgranger1995/423D-Built#readme",
   "dependencies": {
     "@prisma/client": "^6.19.2",
-    "@stripe/react-stripe-js": "^5.6.0",
-    "@stripe/stripe-js": "^8.7.0",
     "bcryptjs": "^3.0.3",
     "framer-motion": "^12.33.0",
     "lucide-react": "^0.563.0",
@@ -50,7 +48,7 @@
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "sharp": "^0.34.5",
-    "stripe": "^20.3.1",
+    "square": "^44.0.0",
     "uuid": "^13.0.0"
   },
   "prisma": {

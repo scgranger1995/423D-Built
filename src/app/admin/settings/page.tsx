@@ -16,7 +16,7 @@ import {
 
 // ============================================
 // Admin General Settings Page
-// Business info, Stripe, tax, email, password, maintenance
+// Business info, Square, tax, email, password, maintenance
 // ============================================
 
 interface GeneralSettings {

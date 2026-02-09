@@ -27,8 +27,8 @@ export async function GET(request: NextRequest) {
             in: [
               "business_name",
               "business_tagline",
-              "stripe_public_key",
-              "stripe_secret_key",
+              "square_application_id",
+              "square_access_token",
               "tax_rate",
               "tax_label",
               "email_notifications_orders",
@@ -48,8 +48,8 @@ export async function GET(request: NextRequest) {
               in: [
                 "business_name",
                 "business_tagline",
-                "stripe_public_key",
-                "stripe_secret_key",
+                "square_application_id",
+                "square_access_token",
                 "tax_rate",
                 "tax_label",
                 "email_notifications_orders",

@@ -49,8 +49,8 @@ model Product {
   madeToOrder         Boolean  @default(false) @map("made_to_order")
   customizable        Boolean  @default(false)
   customizationPrompt String?  @map("customization_prompt")
-  stripePriceId       String?  @map("stripe_price_id")
-  stripeProductId     String?  @map("stripe_product_id")
+  squareVariationId   String?  @map("square_variation_id")
+  squareCatalogId     String?  @map("square_catalog_id")
   tags                String   @default("[]") // JSON array of tags
   createdAt           DateTime @default(now()) @map("created_at")
   updatedAt           DateTime @updatedAt @map("updated_at")
@@ -75,8 +75,8 @@ model Order {
   total                 Int
   status                String   @default("PENDING") // PENDING | PAID | PROCESSING | SHIPPED | DELIVERED | CANCELLED | REFUNDED
   paymentStatus         String   @default("PENDING") @map("payment_status") // PENDING | PAID | REFUNDED
-  stripeSessionId       String?  @unique @map("stripe_session_id")
-  stripePaymentIntentId String?  @unique @map("stripe_payment_intent_id")
+  squareOrderId         String?  @unique @map("square_order_id")
+  squarePaymentId       String?  @unique @map("square_payment_id")
   trackingNumber        String?  @map("tracking_number")
   trackingCarrier       String?  @map("tracking_carrier")
   shippoTransactionId   String?  @map("shippo_transaction_id")

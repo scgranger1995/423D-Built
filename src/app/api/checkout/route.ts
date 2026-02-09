@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import Stripe from "stripe";
-import { getStripe } from "@/lib/stripe";
+import { getSquareClient, getSquareLocationId } from "@/lib/square";
 import { prisma } from "@/lib/prisma";
+import type { Currency } from "square";
 
 // ============================================
-// Stripe Checkout Session Creation
+// Square Checkout – Payment Link Creation
 // ============================================
 
 interface CheckoutLineItem {
@@ -21,7 +21,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { items } = body as { items: CheckoutLineItem[] };
 
-    // Validate items
+    // ------------------------------------------------------------------
+    // 1. Validate request payload
+    // ------------------------------------------------------------------
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
         { error: "No items provided for checkout" },
@@ -29,7 +31,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate each item has required fields
     for (const item of items) {
       if (!item.productId || !item.quantity) {
         return NextResponse.json(
@@ -45,8 +46,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Server-side price validation: look up each product in the database
-    // to prevent price manipulation from the client
+    // ------------------------------------------------------------------
+    // 2. Server-side price validation from the database
+    // ------------------------------------------------------------------
     const productIds = items.map((item) => item.productId);
     const products = await prisma.product.findMany({
       where: { id: { in: productIds } },
@@ -55,7 +57,6 @@ export async function POST(request: NextRequest) {
 
     const productMap = new Map(products.map((p) => [p.id, p]));
 
-    // Verify all products exist and are active
     for (const item of items) {
       const product = productMap.get(item.productId);
       if (!product) {
@@ -78,167 +79,109 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Build Stripe line items using database prices (never trust client prices)
-    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = items.map(
-      (item) => {
-        const product = productMap.get(item.productId)!;
-        const description = item.customization
-          ? `Customization: ${item.customization}`
-          : undefined;
+    // ------------------------------------------------------------------
+    // 3. Build Square line items (prices in cents -> BigInt)
+    // ------------------------------------------------------------------
+    const locationId = getSquareLocationId();
+    const client = getSquareClient();
 
-        const productData: Stripe.Checkout.SessionCreateParams.LineItem.PriceData.ProductData =
+    const lineItems = items.map((item) => {
+      const product = productMap.get(item.productId)!;
+      const note = item.customization
+        ? `Customization: ${item.customization}`
+        : undefined;
+
+      return {
+        name: product.name,
+        quantity: String(item.quantity),
+        basePriceMoney: {
+          amount: BigInt(product.price), // database price in cents
+          currency: "USD" as Currency,
+        },
+        ...(note && { note }),
+      };
+    });
+
+    // ------------------------------------------------------------------
+    // 4. Create the Square order first so we know the orderId upfront
+    // ------------------------------------------------------------------
+    const orderResponse = await client.orders.create({
+      order: {
+        locationId,
+        lineItems,
+        taxes: [
           {
-            name: product.name,
-            ...(description && { description }),
-            metadata: {
-              productId: item.productId,
-              ...(item.customization && {
-                customization: item.customization,
-              }),
-            },
-          };
-
-        // Add product image if available and it's a full URL
-        // Parse images from the database JSON string
-        let imageUrl: string | undefined;
-        try {
-          const images = JSON.parse(product.images);
-          if (Array.isArray(images) && images.length > 0 && typeof images[0] === "string" && images[0].startsWith("http")) {
-            imageUrl = images[0];
-          }
-        } catch {
-          // Ignore parse errors for images
-        }
-        if (imageUrl) {
-          productData.images = [imageUrl];
-        }
-
-        return {
-          price_data: {
-            currency: "usd",
-            product_data: productData,
-            unit_amount: product.price, // use database price, not client-sent price
+            name: "TN Sales Tax",
+            percentage: "9.75",
+            scope: "ORDER",
           },
-          quantity: item.quantity,
-        };
-      }
-    );
-
-    // Calculate cart subtotal (in cents) for shipping & tax logic
-    const subtotal = items.reduce(
-      (sum, item) => sum + productMap.get(item.productId)!.price * item.quantity,
-      0
-    );
-
-    // Tennessee sales tax (9.75%) as a separate non-shippable line item
-    const TN_TAX_RATE = 0.0975;
-    const taxAmount = Math.round(subtotal * TN_TAX_RATE);
-
-    lineItems.push({
-      price_data: {
-        currency: "usd",
-        product_data: {
-          name: "Tennessee Sales Tax (9.75%)",
-        },
-        unit_amount: taxAmount,
+        ],
       },
-      quantity: 1,
+      idempotencyKey: crypto.randomUUID(),
     });
 
-    // Build shipping options: always include Standard and Priority
-    const FREE_SHIPPING_THRESHOLD = 7500; // $75.00 in cents
+    const squareOrder = orderResponse.order;
+    const squareOrderId = squareOrder?.id;
 
-    const shippingOptions: Stripe.Checkout.SessionCreateParams.ShippingOption[] =
-      [
-        {
-          shipping_rate_data: {
-            type: "fixed_amount",
-            fixed_amount: {
-              amount: 799,
-              currency: "usd",
-            },
-            display_name: "Standard Shipping",
-            delivery_estimate: {
-              minimum: { unit: "business_day", value: 5 },
-              maximum: { unit: "business_day", value: 10 },
-            },
-          },
-        },
-        {
-          shipping_rate_data: {
-            type: "fixed_amount",
-            fixed_amount: {
-              amount: 1499,
-              currency: "usd",
-            },
-            display_name: "Priority Shipping",
-            delivery_estimate: {
-              minimum: { unit: "business_day", value: 2 },
-              maximum: { unit: "business_day", value: 5 },
-            },
-          },
-        },
-      ];
-
-    // Only offer free shipping when subtotal meets the $75 threshold
-    if (subtotal >= FREE_SHIPPING_THRESHOLD) {
-      shippingOptions.unshift({
-        shipping_rate_data: {
-          type: "fixed_amount",
-          fixed_amount: {
-            amount: 0,
-            currency: "usd",
-          },
-          display_name: "Free Shipping (Orders over $75)",
-          delivery_estimate: {
-            minimum: { unit: "business_day", value: 5 },
-            maximum: { unit: "business_day", value: 10 },
-          },
-        },
-      });
-    }
-
-    // Determine success and cancel URLs
-    const origin =
-      request.headers.get("origin") ||
-      process.env.NEXT_PUBLIC_BASE_URL ||
-      "http://localhost:3000";
-
-    // Create Stripe Checkout Session
-    const stripe = getStripe();
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
-      mode: "payment",
-      line_items: lineItems,
-      shipping_address_collection: {
-        allowed_countries: ["US"],
-      },
-      shipping_options: shippingOptions,
-      automatic_tax: { enabled: false },
-      metadata: {
-        itemCount: items.length.toString(),
-        productIds: items.map((i) => i.productId).join(","),
-      },
-      success_url: `${origin}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/cart`,
-    });
-
-    return NextResponse.json({
-      url: session.url,
-      sessionId: session.id,
-    });
-  } catch (error) {
-    console.error("Checkout session creation failed:", error);
-
-    if (error instanceof Stripe.errors.StripeError) {
+    if (!squareOrderId) {
+      console.error("Square did not return an order ID", orderResponse);
       return NextResponse.json(
-        { error: `Stripe error: ${error.message}` },
-        { status: error.statusCode || 500 }
+        { error: "Failed to create order. Please try again." },
+        { status: 500 }
       );
     }
 
+    // ------------------------------------------------------------------
+    // 5. Create a payment link referencing the existing order
+    // ------------------------------------------------------------------
+    const appUrl =
+      process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
+    const linkResponse = await client.checkout.paymentLinks.create({
+      idempotencyKey: crypto.randomUUID(),
+      order: {
+        locationId,
+        lineItems,
+        taxes: [
+          {
+            name: "TN Sales Tax",
+            percentage: "9.75",
+            scope: "ORDER",
+          },
+        ],
+      },
+      checkoutOptions: {
+        redirectUrl: `${appUrl}/success?orderId=${squareOrderId}`,
+        askForShippingAddress: true,
+      },
+    });
+
+    const paymentLink = linkResponse.paymentLink;
+    const checkoutUrl = paymentLink?.url;
+
+    if (!checkoutUrl) {
+      console.error(
+        "Square did not return a checkout URL",
+        linkResponse
+      );
+      return NextResponse.json(
+        { error: "Failed to create checkout link. Please try again." },
+        { status: 500 }
+      );
+    }
+
+    // ------------------------------------------------------------------
+    // 6. Return the checkout URL to the client
+    // ------------------------------------------------------------------
+    return NextResponse.json({ url: checkoutUrl });
+  } catch (error: unknown) {
+    console.error("Checkout creation failed:", error);
+
+    const message =
+      error instanceof Error ? error.message : "Unknown error";
+
     return NextResponse.json(
-      { error: "Failed to create checkout session. Please try again." },
+      { error: `Checkout failed: ${message}` },
       { status: 500 }
     );
   }

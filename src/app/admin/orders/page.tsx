@@ -61,7 +61,7 @@ interface Order {
   total: number;
   status: string;
   paymentStatus: string;
-  stripePaymentIntentId: string | null;
+  squarePaymentId: string | null;
   trackingNumber: string | null;
   trackingCarrier: string | null;
   labelUrl: string | null;
@@ -347,7 +347,7 @@ function OrderDetailModal({
                               {confirmStatus === "CANCELLED" &&
                                 " This cannot be easily undone."}
                               {confirmStatus === "REFUNDED" &&
-                                " Make sure the refund has been processed in Stripe."}
+                                " Make sure the refund has been processed in Square."}
                             </p>
                             <div className="flex gap-2">
                               <button
@@ -580,11 +580,11 @@ function OrderDetailModal({
                         </span>
                       </div>
 
-                      {order.stripePaymentIntentId && (
+                      {order.squarePaymentId && (
                         <div className="flex items-center gap-2 text-xs text-gray-500 pt-1">
                           <Hash size={11} />
                           <span className="font-mono">
-                            {order.stripePaymentIntentId}
+                            {order.squarePaymentId}
                           </span>
                         </div>
                       )}
