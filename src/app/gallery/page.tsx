@@ -1,9 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Filter, Layers, Printer, Sparkles } from "lucide-react";
+import { X, Filter, Layers, Printer, Sparkles, ExternalLink } from "lucide-react";
+
+// ============================================
+// Types
+// ============================================
+
+interface GalleryItem {
+  id: number | string;
+  title: string;
+  category: "3d-printing" | "laser-engraving" | "custom";
+  description: string;
+  material: string;
+  dimensions: string;
+  image?: string;
+  slug?: string;
+}
+
+// ============================================
+// Constants
+// ============================================
 
 const categories = [
   { id: "all", label: "All Work", icon: Layers },
@@ -12,7 +32,16 @@ const categories = [
   { id: "custom", label: "Custom Projects", icon: Filter },
 ];
 
-const galleryItems = [
+/** Map database category enum values to gallery filter IDs */
+const DB_CATEGORY_MAP: Record<string, GalleryItem["category"]> = {
+  PRINTING_3D: "3d-printing",
+  LASER_ENGRAVE: "laser-engraving",
+  DESIGN: "custom",
+  OTHER: "custom",
+};
+
+/** Hardcoded fallback items shown when no products are returned from the API */
+const placeholderItems: GalleryItem[] = [
   {
     id: 1,
     title: "Smoky Mountain Topographic Map",
@@ -123,11 +152,74 @@ const galleryItems = [
   },
 ];
 
+// ============================================
+// Helpers
+// ============================================
+
+/**
+ * Convert a raw product object from the /api/products response
+ * into the GalleryItem shape used by this page.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapDbProduct(raw: any): GalleryItem {
+  // Parse the JSON images field (stored as a JSON string in the DB)
+  let firstImage: string | undefined;
+  try {
+    const parsed = JSON.parse(raw.images || "[]");
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      firstImage = parsed[0];
+    }
+  } catch {
+    firstImage = undefined;
+  }
+
+  return {
+    id: raw.id,
+    title: raw.name,
+    category: DB_CATEGORY_MAP[raw.category] || "custom",
+    description: raw.shortDescription || raw.description || "",
+    material: raw.material || "Unknown",
+    dimensions: raw.dimensions || "",
+    image: firstImage,
+    slug: raw.slug,
+  };
+}
+
+// ============================================
+// Gallery Page
+// ============================================
+
 export default function GalleryPage() {
   const [activeCategory, setActiveCategory] = useState("all");
-  const [selectedItem, setSelectedItem] = useState<
-    (typeof galleryItems)[0] | null
-  >(null);
+  const [selectedItem, setSelectedItem] = useState<GalleryItem | null>(null);
+
+  // null = not yet loaded; empty array means API returned zero products
+  const [dbItems, setDbItems] = useState<GalleryItem[] | null>(null);
+
+  const fetchProducts = useCallback(async () => {
+    try {
+      const res = await fetch("/api/products?pageSize=50");
+      if (!res.ok) throw new Error("API error");
+      const json = await res.json();
+      if (json.success && json.data?.items?.length > 0) {
+        setDbItems(json.data.items.map(mapDbProduct));
+      } else {
+        // API returned zero products -- use placeholder fallback
+        setDbItems([]);
+      }
+    } catch {
+      // API unavailable -- leave as null so placeholders are used
+      console.warn("Could not fetch products from API, using placeholder data.");
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  // Use real products when available, otherwise fall back to hardcoded items
+  const galleryItems: GalleryItem[] =
+    dbItems !== null && dbItems.length > 0 ? dbItems : placeholderItems;
 
   const filtered =
     activeCategory === "all"
@@ -259,7 +351,7 @@ export default function GalleryPage() {
                 boxShadow: "0 0 20px rgba(212,136,28,0.1)",
               }}
             >
-              {/* Placeholder image */}
+              {/* Image area */}
               <div
                 style={{
                   position: "relative",
@@ -271,25 +363,35 @@ export default function GalleryPage() {
                   overflow: "hidden",
                 }}
               >
-                <div
-                  style={{
-                    background:
-                      "linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 50%, #1a1a1a 100%)",
-                    width: "100%",
-                    height: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  {item.category === "3d-printing" ? (
-                    <Printer size={48} color="#333" />
-                  ) : item.category === "laser-engraving" ? (
-                    <Sparkles size={48} color="#333" />
-                  ) : (
-                    <Layers size={48} color="#333" />
-                  )}
-                </div>
+                {item.image ? (
+                  <Image
+                    src={item.image}
+                    alt={item.title}
+                    fill
+                    style={{ objectFit: "cover" }}
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                  />
+                ) : (
+                  <div
+                    style={{
+                      background:
+                        "linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 50%, #1a1a1a 100%)",
+                      width: "100%",
+                      height: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    {item.category === "3d-printing" ? (
+                      <Printer size={48} color="#333" />
+                    ) : item.category === "laser-engraving" ? (
+                      <Sparkles size={48} color="#333" />
+                    ) : (
+                      <Layers size={48} color="#333" />
+                    )}
+                  </div>
+                )}
                 {/* Category badge */}
                 <span
                   style={{
@@ -340,14 +442,40 @@ export default function GalleryPage() {
                 <div
                   style={{
                     display: "flex",
-                    gap: 16,
+                    justifyContent: "space-between",
+                    alignItems: "center",
                     marginTop: 12,
-                    fontSize: "0.8rem",
-                    color: "#666",
                   }}
                 >
-                  <span>{item.material}</span>
-                  <span>{item.dimensions}</span>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 16,
+                      fontSize: "0.8rem",
+                      color: "#666",
+                    }}
+                  >
+                    <span>{item.material}</span>
+                    <span>{item.dimensions}</span>
+                  </div>
+                  {item.slug && (
+                    <Link
+                      href={`/shop/${item.slug}`}
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                        fontSize: "0.8rem",
+                        fontWeight: 600,
+                        color: "#E8A83E",
+                        textDecoration: "none",
+                        transition: "color 0.2s",
+                      }}
+                    >
+                      Shop <ExternalLink size={12} />
+                    </Link>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -431,9 +559,10 @@ export default function GalleryPage() {
                 overflow: "hidden",
               }}
             >
-              {/* Modal image placeholder */}
+              {/* Modal image */}
               <div
                 style={{
+                  position: "relative",
                   height: 300,
                   backgroundColor: "#222",
                   display: "flex",
@@ -441,7 +570,15 @@ export default function GalleryPage() {
                   justifyContent: "center",
                 }}
               >
-                {selectedItem.category === "3d-printing" ? (
+                {selectedItem.image ? (
+                  <Image
+                    src={selectedItem.image}
+                    alt={selectedItem.title}
+                    fill
+                    style={{ objectFit: "cover" }}
+                    sizes="600px"
+                  />
+                ) : selectedItem.category === "3d-printing" ? (
                   <Printer size={64} color="#444" />
                 ) : selectedItem.category === "laser-engraving" ? (
                   <Sparkles size={64} color="#444" />
@@ -569,22 +706,63 @@ export default function GalleryPage() {
                   </div>
                 </div>
 
-                <a
-                  href="/quote"
-                  style={{
-                    display: "block",
-                    textAlign: "center",
-                    marginTop: 24,
-                    padding: "12px 24px",
-                    borderRadius: 8,
-                    backgroundColor: "#D4881C",
-                    color: "#000",
-                    fontWeight: 600,
-                    textDecoration: "none",
-                  }}
-                >
-                  Request Something Similar
-                </a>
+                {selectedItem.slug ? (
+                  <div style={{ display: "flex", gap: 12, marginTop: 24 }}>
+                    <Link
+                      href={`/shop/${selectedItem.slug}`}
+                      style={{
+                        display: "flex",
+                        flex: 1,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 8,
+                        padding: "12px 24px",
+                        borderRadius: 8,
+                        backgroundColor: "#D4881C",
+                        color: "#000",
+                        fontWeight: 600,
+                        textDecoration: "none",
+                      }}
+                    >
+                      View in Shop <ExternalLink size={16} />
+                    </Link>
+                    <a
+                      href="/quote"
+                      style={{
+                        display: "flex",
+                        flex: 1,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: "12px 24px",
+                        borderRadius: 8,
+                        border: "1px solid rgba(212,136,28,0.4)",
+                        backgroundColor: "transparent",
+                        color: "#E8A83E",
+                        fontWeight: 600,
+                        textDecoration: "none",
+                      }}
+                    >
+                      Request Similar
+                    </a>
+                  </div>
+                ) : (
+                  <a
+                    href="/quote"
+                    style={{
+                      display: "block",
+                      textAlign: "center",
+                      marginTop: 24,
+                      padding: "12px 24px",
+                      borderRadius: 8,
+                      backgroundColor: "#D4881C",
+                      color: "#000",
+                      fontWeight: 600,
+                      textDecoration: "none",
+                    }}
+                  >
+                    Request Something Similar
+                  </a>
+                )}
               </div>
             </motion.div>
           </motion.div>

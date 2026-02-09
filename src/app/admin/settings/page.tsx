@@ -70,7 +70,7 @@ export default function AdminSettingsPage() {
   const fetchSettings = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/shipping?type=general");
+      const res = await fetch("/api/admin/content?section=settings");
       if (!res.ok) throw new Error("Failed to fetch settings");
       const data = await res.json();
 
@@ -114,12 +114,13 @@ export default function AdminSettingsPage() {
       const items = Object.entries(settings).map(([key, value]) => ({
         key,
         value,
+        section: "settings",
       }));
 
-      const res = await fetch("/api/admin/shipping", {
+      const res = await fetch("/api/admin/content", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items, type: "general" }),
+        body: JSON.stringify({ items }),
       });
 
       if (!res.ok) throw new Error("Failed to save settings");

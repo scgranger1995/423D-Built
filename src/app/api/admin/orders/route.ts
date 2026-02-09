@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
         ];
       }
 
-      const [items, total] = await Promise.all([
+      const [rawItems, total] = await Promise.all([
         prisma.serviceInquiry.findMany({
           where,
           orderBy: { createdAt: "desc" },
@@ -47,6 +47,18 @@ export async function GET(request: NextRequest) {
         }),
         prisma.serviceInquiry.count({ where }),
       ]);
+
+      // Parse fileUrls from JSON string back to array for the response
+      const items = rawItems.map((item) => ({
+        ...item,
+        fileUrls: (() => {
+          try {
+            return JSON.parse(item.fileUrls);
+          } catch {
+            return [];
+          }
+        })(),
+      }));
 
       return Response.json({
         items,
@@ -186,10 +198,22 @@ export async function PATCH(request: NextRequest) {
         updateData.adminResponse = body.adminResponse;
       }
 
-      const inquiry = await prisma.serviceInquiry.update({
+      const updatedInquiry = await prisma.serviceInquiry.update({
         where: { id },
         data: updateData,
       });
+
+      // Parse fileUrls from JSON string back to array for the response
+      const inquiry = {
+        ...updatedInquiry,
+        fileUrls: (() => {
+          try {
+            return JSON.parse(updatedInquiry.fileUrls);
+          } catch {
+            return [];
+          }
+        })(),
+      };
 
       return Response.json({ success: true, inquiry });
     }

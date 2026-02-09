@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { sendInquiryConfirmation, sendAdminNotification } from "@/lib/email";
 
 // ============================================
 // Service Inquiry API
@@ -100,13 +101,30 @@ export async function POST(request: NextRequest) {
         material: material?.trim() || null,
         color: color?.trim() || null,
         quantity: quantity || 1,
-        fileUrls: fileUrls || [],
+        fileUrls: JSON.stringify(fileUrls || []),
         timeline: (timeline as (typeof VALID_TIMELINES)[number]) || "STANDARD",
         budget: budget?.trim() || null,
         referralSource: referralSource?.trim() || null,
         status: "NEW",
       },
     });
+
+    // ---- Send email notifications (non-blocking) ----
+    const trimmedName = customerName.trim();
+    const trimmedEmail = customerEmail.trim().toLowerCase();
+
+    sendInquiryConfirmation(trimmedEmail, trimmedName, serviceType).catch(
+      (err) => console.error("[Email] Inquiry confirmation failed:", err)
+    );
+
+    sendAdminNotification(
+      `New Inquiry: ${serviceType}`,
+      `<p><strong>Customer:</strong> ${trimmedName} (${trimmedEmail})</p>
+       <p><strong>Service:</strong> ${serviceType}</p>
+       <p><strong>Description:</strong> ${description.trim()}</p>
+       ${company ? `<p><strong>Company:</strong> ${company.trim()}</p>` : ""}
+       ${timeline ? `<p><strong>Timeline:</strong> ${timeline}</p>` : ""}`
+    ).catch((err) => console.error("[Email] Admin inquiry notification failed:", err));
 
     return NextResponse.json(
       {
@@ -159,7 +177,7 @@ export async function GET(request: NextRequest) {
     if (serviceType) where.serviceType = serviceType;
 
     // Fetch inquiries with pagination
-    const [inquiries, total] = await Promise.all([
+    const [rawInquiries, total] = await Promise.all([
       prisma.serviceInquiry.findMany({
         where,
         orderBy: { createdAt: "desc" },
@@ -168,6 +186,18 @@ export async function GET(request: NextRequest) {
       }),
       prisma.serviceInquiry.count({ where }),
     ]);
+
+    // Parse fileUrls from JSON string back to array for the response
+    const inquiries = rawInquiries.map((item) => ({
+      ...item,
+      fileUrls: (() => {
+        try {
+          return JSON.parse(item.fileUrls);
+        } catch {
+          return [];
+        }
+      })(),
+    }));
 
     return NextResponse.json({
       success: true,

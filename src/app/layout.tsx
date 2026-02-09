@@ -28,6 +28,9 @@ const inter = Inter({
 /* ------------------------------------------------------------------ */
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL ?? "https://423dbuilt.com"
+  ),
   title: {
     default: "423D Built | 3D Printing & Laser Engraving | Bristol, TN",
     template: "%s | 423D Built",
@@ -37,39 +40,34 @@ export const metadata: Metadata = {
   keywords: [
     "3D printing",
     "laser engraving",
+    "custom manufacturing",
     "Bristol TN",
     "Tennessee",
     "custom 3D prints",
     "prototyping",
     "personalized gifts",
+    "laser cutting",
+    "CAD design",
     "Tri-Cities",
     "Appalachia",
     "423D Built",
   ],
   authors: [{ name: "423D Built" }],
+  creator: "423D Built",
   openGraph: {
     title: "423D Built | 3D Printing & Laser Engraving | Bristol, TN",
     description:
       "Professional 3D printing and laser engraving services in Bristol, Tennessee. Custom designs, prototyping, and personalized creations.",
-    url: "https://423dbuilt.com",
+    url: "/",
     siteName: "423D Built",
     locale: "en_US",
     type: "website",
-    images: [
-      {
-        url: "/images/logo.jpg",
-        width: 800,
-        height: 800,
-        alt: "423D Built Logo",
-      },
-    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "423D Built | 3D Printing & Laser Engraving",
     description:
       "Professional 3D printing and laser engraving services in Bristol, Tennessee.",
-    images: ["/images/logo.jpg"],
   },
   robots: {
     index: true,

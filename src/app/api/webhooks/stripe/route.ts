@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { prisma } from "@/lib/prisma";
 import { getStripe } from "@/lib/stripe";
+import {
+  sendOrderConfirmation,
+  sendAdminNotification,
+  type OrderItem,
+} from "@/lib/email";
 
 // ============================================
 // Stripe Webhook Handler
@@ -90,9 +95,10 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   });
 
   // Create order in database
+  const orderNumber = generateOrderNumber();
   await prisma.order.create({
     data: {
-      orderNumber: generateOrderNumber(),
+      orderNumber,
       customerEmail,
       customerName,
       customerPhone,
@@ -115,6 +121,26 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   });
 
   console.log(`Order created for session ${session.id}`);
+
+  // ---- Send email notifications (non-blocking) ----
+  const emailItems: OrderItem[] = orderItems.map((item) => ({
+    productName: item.productName,
+    quantity: item.quantity,
+    unitPrice: item.unitPrice,
+  }));
+
+  // Fire-and-forget so email failures never break the webhook
+  sendOrderConfirmation(customerEmail, customerName, orderNumber, emailItems, total).catch(
+    (err) => console.error("[Email] Order confirmation failed:", err)
+  );
+
+  sendAdminNotification(
+    `New Order: ${orderNumber}`,
+    `<p><strong>Customer:</strong> ${customerName} (${customerEmail})</p>
+     <p><strong>Order:</strong> ${orderNumber}</p>
+     <p><strong>Total:</strong> $${(total / 100).toFixed(2)}</p>
+     <p><strong>Items:</strong> ${emailItems.map((i) => `${i.productName} x${i.quantity}`).join(", ")}</p>`
+  ).catch((err) => console.error("[Email] Admin order notification failed:", err));
 }
 
 /**
