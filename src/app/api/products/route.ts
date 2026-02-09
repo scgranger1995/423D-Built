@@ -11,6 +11,7 @@ import type { Prisma } from "@prisma/client";
  * Fetch all active products with optional filtering, search, and pagination.
  *
  * Query Parameters:
+ * - slug: Fetch a single product by slug (returns { success, data: product })
  * - category: Filter by ProductCategory (PRINTING_3D, LASER_ENGRAVE, DESIGN, OTHER)
  * - search: Search in name, description, and tags
  * - sort: Sort order (newest, price-asc, price-desc, popular, name-asc, name-desc)
@@ -23,6 +24,25 @@ import type { Prisma } from "@prisma/client";
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
+
+    // --- Single product by slug ---
+    const slug = searchParams.get("slug");
+    if (slug) {
+      const product = await prisma.product.findUnique({
+        where: { slug },
+      });
+
+      if (!product || !product.active) {
+        return NextResponse.json(
+          { success: false, error: "Product not found" },
+          { status: 404 }
+        );
+      }
+
+      return NextResponse.json({ success: true, data: product });
+    }
+
+    // --- Product listing with filters ---
 
     // Parse query parameters
     const category = searchParams.get("category") || undefined;
@@ -55,7 +75,7 @@ export async function GET(request: NextRequest) {
         "OTHER",
       ];
       if (validCategories.includes(category)) {
-        where.category = category as Prisma.EnumProductCategoryFilter;
+        where.category = category;
       }
     }
 
@@ -78,11 +98,11 @@ export async function GET(request: NextRequest) {
     // Search filter
     if (search) {
       where.OR = [
-        { name: { contains: search, mode: "insensitive" } },
-        { description: { contains: search, mode: "insensitive" } },
-        { shortDescription: { contains: search, mode: "insensitive" } },
-        { tags: { has: search.toLowerCase() } },
-        { material: { contains: search, mode: "insensitive" } },
+        { name: { contains: search } },
+        { description: { contains: search } },
+        { shortDescription: { contains: search } },
+        { tags: { contains: search.toLowerCase() } },
+        { material: { contains: search } },
       ];
     }
 

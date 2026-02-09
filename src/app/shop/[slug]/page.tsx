@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, use } from "react";
+import { useState, useEffect, use } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -16,6 +16,7 @@ import {
   Check,
 } from "lucide-react";
 import {
+  PLACEHOLDER_PRODUCTS,
   getProductBySlug,
   getRelatedProducts,
   formatPrice,
@@ -33,6 +34,66 @@ interface Tab {
   id: TabId;
   label: string;
   icon: React.ReactNode;
+}
+
+// Map database category values to placeholder category values
+const DB_CATEGORY_MAP: Record<string, PlaceholderProduct["category"]> = {
+  PRINTING_3D: "3d_print",
+  LASER_ENGRAVE: "laser_engrave",
+  DESIGN: "custom",
+  OTHER: "custom",
+};
+
+/**
+ * Convert a raw database product (with JSON string fields) into
+ * the PlaceholderProduct shape used by the existing UI components.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapDbProduct(raw: any): PlaceholderProduct {
+  const images: string[] = (() => {
+    try {
+      const parsed = JSON.parse(raw.images || "[]");
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  })();
+
+  const tags: string[] = (() => {
+    try {
+      const parsed = JSON.parse(raw.tags || "[]");
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  })();
+
+  return {
+    id: raw.id,
+    name: raw.name,
+    slug: raw.slug,
+    shortDescription: raw.shortDescription || "",
+    description: raw.description || "",
+    category: DB_CATEGORY_MAP[raw.category] || "custom",
+    price: raw.price,
+    compareAtPrice: raw.compareAtPrice ?? undefined,
+    material: raw.material || "Unknown",
+    color: raw.color ?? undefined,
+    dimensions: raw.dimensions || "",
+    weight: raw.weight ?? 0,
+    images,
+    featured: raw.featured ?? false,
+    active: raw.active ?? true,
+    inventory: raw.inventory ?? 0,
+    madeToOrder: raw.madeToOrder ?? false,
+    customizable: raw.customizable ?? false,
+    customizationPrompt: raw.customizationPrompt ?? undefined,
+    tags,
+    careInstructions: raw.careInstructions || "Handle with care.",
+    shippingInfo:
+      raw.shippingInfo ||
+      "Ships within 3-5 business days. Standard USPS shipping.",
+  };
 }
 
 // ============================================
@@ -152,9 +213,68 @@ export default function ProductDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = use(params);
-  const product = getProductBySlug(slug);
-  const relatedProducts = getRelatedProducts(slug, 4);
+  const placeholderProduct = getProductBySlug(slug);
   const { addItem } = useCart();
+
+  // Start with the placeholder product so the page renders immediately
+  const [product, setProduct] = useState<PlaceholderProduct | undefined>(placeholderProduct);
+
+  // Fetch the product from the database API, falling back to placeholder
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchProduct() {
+      try {
+        const res = await fetch(`/api/products?slug=${encodeURIComponent(slug)}`);
+        if (!res.ok) throw new Error("API error");
+        const json = await res.json();
+        if (json.success && json.data) {
+          const mapped = mapDbProduct(json.data);
+          if (!cancelled) setProduct(mapped);
+        }
+        // If no data from API, keep the placeholder product
+      } catch {
+        // API unavailable -- keep placeholder product
+        console.warn("Could not fetch product from database, using placeholder data.");
+      }
+    }
+    fetchProduct();
+    return () => { cancelled = true; };
+  }, [slug]);
+
+  // Related products: try to derive from the same source (DB products via API),
+  // but fall back to placeholder-based related products for simplicity
+  const [relatedProducts, setRelatedProducts] = useState<PlaceholderProduct[]>(
+    () => getRelatedProducts(slug, 4)
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchRelated() {
+      try {
+        const res = await fetch("/api/products?pageSize=50");
+        if (!res.ok) throw new Error("API error");
+        const json = await res.json();
+        if (json.success && json.data?.items?.length > 0) {
+          const allProducts: PlaceholderProduct[] = json.data.items.map(mapDbProduct);
+          const current = allProducts.find((p) => p.slug === slug);
+          if (current) {
+            const sameCategory = allProducts.filter(
+              (p) => p.category === current.category && p.slug !== slug
+            );
+            const others = allProducts.filter(
+              (p) => p.category !== current.category && p.slug !== slug
+            );
+            const related = [...sameCategory, ...others].slice(0, 4);
+            if (!cancelled && related.length > 0) setRelatedProducts(related);
+          }
+        }
+      } catch {
+        // Keep placeholder related products
+      }
+    }
+    fetchRelated();
+    return () => { cancelled = true; };
+  }, [slug]);
 
   const [quantity, setQuantity] = useState(1);
   const [customization, setCustomization] = useState("");

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -51,6 +51,66 @@ const SORT_OPTIONS = [
 ];
 
 const ITEMS_PER_PAGE = 6;
+
+// Map database category values to placeholder category values
+const DB_CATEGORY_MAP: Record<string, PlaceholderProduct["category"]> = {
+  PRINTING_3D: "3d_print",
+  LASER_ENGRAVE: "laser_engrave",
+  DESIGN: "custom",
+  OTHER: "custom",
+};
+
+/**
+ * Convert a raw database product (with JSON string fields) into
+ * the PlaceholderProduct shape used by the existing UI components.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapDbProduct(raw: any): PlaceholderProduct {
+  const images: string[] = (() => {
+    try {
+      const parsed = JSON.parse(raw.images || "[]");
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  })();
+
+  const tags: string[] = (() => {
+    try {
+      const parsed = JSON.parse(raw.tags || "[]");
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  })();
+
+  return {
+    id: raw.id,
+    name: raw.name,
+    slug: raw.slug,
+    shortDescription: raw.shortDescription || "",
+    description: raw.description || "",
+    category: DB_CATEGORY_MAP[raw.category] || "custom",
+    price: raw.price,
+    compareAtPrice: raw.compareAtPrice ?? undefined,
+    material: raw.material || "Unknown",
+    color: raw.color ?? undefined,
+    dimensions: raw.dimensions || "",
+    weight: raw.weight ?? 0,
+    images,
+    featured: raw.featured ?? false,
+    active: raw.active ?? true,
+    inventory: raw.inventory ?? 0,
+    madeToOrder: raw.madeToOrder ?? false,
+    customizable: raw.customizable ?? false,
+    customizationPrompt: raw.customizationPrompt ?? undefined,
+    tags,
+    careInstructions: raw.careInstructions || "Handle with care.",
+    shippingInfo:
+      raw.shippingInfo ||
+      "Ships within 3-5 business days. Standard USPS shipping.",
+  };
+}
 
 // ============================================
 // Product Card Component
@@ -183,16 +243,82 @@ export default function ShopPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [displayCount, setDisplayCount] = useState(ITEMS_PER_PAGE);
 
+  // Database products state -- null means "not yet loaded"
+  const [dbProducts, setDbProducts] = useState<PlaceholderProduct[] | null>(null);
+
+  // Fetch products from the database API on mount
+  const fetchProducts = useCallback(async () => {
+    try {
+      const res = await fetch("/api/products?pageSize=50");
+      if (!res.ok) throw new Error("API error");
+      const json = await res.json();
+      if (json.success && json.data?.items?.length > 0) {
+        setDbProducts(json.data.items.map(mapDbProduct));
+      }
+      // If the API returns zero items, leave dbProducts as null
+      // so placeholder data is used instead
+    } catch {
+      // API unavailable -- keep dbProducts as null to use placeholder fallback
+      console.warn("Could not fetch products from database, using placeholder data.");
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  // Use DB products when available, otherwise fall back to placeholder data
+  const sourceProducts = dbProducts ?? PLACEHOLDER_PRODUCTS;
+
   const filteredProducts = useMemo(() => {
-    return filterProducts({
-      category,
-      material: material !== "All Materials" ? material : undefined,
-      minPrice: priceRange[0],
-      maxPrice: priceRange[1],
-      search: search || undefined,
-      sort,
-    });
-  }, [category, material, sort, search, priceRange]);
+    // Apply the same client-side filtering as the original filterProducts helper
+    let filtered = sourceProducts.filter((p) => p.active);
+
+    if (category && category !== "all") {
+      filtered = filtered.filter((p) => p.category === category);
+    }
+
+    if (material !== "All Materials") {
+      filtered = filtered.filter((p) =>
+        p.material.toLowerCase().includes(material.toLowerCase())
+      );
+    }
+
+    if (priceRange[0] > 0) {
+      filtered = filtered.filter((p) => p.price >= priceRange[0]);
+    }
+
+    if (priceRange[1] < 10000) {
+      filtered = filtered.filter((p) => p.price <= priceRange[1]);
+    }
+
+    if (search) {
+      const query = search.toLowerCase();
+      filtered = filtered.filter(
+        (p) =>
+          p.name.toLowerCase().includes(query) ||
+          p.description.toLowerCase().includes(query) ||
+          p.tags.some((t) => t.includes(query))
+      );
+    }
+
+    switch (sort) {
+      case "price-asc":
+        filtered.sort((a, b) => a.price - b.price);
+        break;
+      case "price-desc":
+        filtered.sort((a, b) => b.price - a.price);
+        break;
+      case "popular":
+        filtered.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
+        break;
+      case "newest":
+      default:
+        break;
+    }
+
+    return filtered;
+  }, [sourceProducts, category, material, sort, search, priceRange]);
 
   const displayedProducts = filteredProducts.slice(0, displayCount);
   const hasMore = displayCount < filteredProducts.length;

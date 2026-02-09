@@ -96,7 +96,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
       customerEmail,
       customerName,
       customerPhone,
-      shippingAddress,
+      shippingAddress: JSON.stringify(shippingAddress),
       subtotal,
       shippingCost,
       taxAmount,

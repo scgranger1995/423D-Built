@@ -239,7 +239,7 @@ export async function POST(request: NextRequest) {
       });
 
       // Parse shipping address from order
-      const shippingAddr = order.shippingAddress as {
+      const shippingAddr = order.shippingAddress as unknown as {
         name: string;
         street1: string;
         street2?: string;
