@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, Suspense } from "react";
+import { useEffect, useState, useRef, useCallback, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
@@ -14,8 +14,34 @@ import {
   ShoppingBag,
   ArrowRight,
   Sparkles,
+  Loader2,
 } from "lucide-react";
 import { useCart } from "@/hooks/useCart";
+import { formatPrice } from "@/lib/placeholder-products";
+
+// ============================================
+// Types
+// ============================================
+
+interface OrderItem {
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  customization: string | null;
+}
+
+interface OrderData {
+  orderNumber: string;
+  customerName: string;
+  customerEmail: string;
+  status: string;
+  subtotal: number;
+  shippingCost: number;
+  taxAmount: number;
+  total: number;
+  items: OrderItem[];
+  createdAt: string;
+}
 
 // ============================================
 // Confetti Particle Component
@@ -157,6 +183,146 @@ function TimelineStepItem({
 }
 
 // ============================================
+// Order Details Card
+// ============================================
+
+function OrderDetailsCard({ order }: { order: OrderData }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.5 }}
+      className="mx-auto mt-8 max-w-lg rounded-xl border border-white/10 bg-dark-gray p-6"
+    >
+      {/* Order Number & Customer */}
+      <div className="mb-5 text-center">
+        <p className="text-xs font-medium uppercase tracking-wider text-white/40">
+          Order Number
+        </p>
+        <p className="mt-1 font-mono text-lg font-bold text-gold">
+          {order.orderNumber}
+        </p>
+        <p className="mt-1 text-sm text-white/50">
+          {order.customerName}
+        </p>
+      </div>
+
+      {/* Divider */}
+      <div className="border-t border-white/10" />
+
+      {/* Items */}
+      <div className="mt-4 space-y-3">
+        <p className="text-xs font-medium uppercase tracking-wider text-white/40">
+          Items Ordered
+        </p>
+        {order.items.map((item, idx) => (
+          <div
+            key={idx}
+            className="flex items-start justify-between gap-4"
+          >
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-off-white">
+                {item.productName}
+                {item.quantity > 1 && (
+                  <span className="ml-1 text-white/40">
+                    x{item.quantity}
+                  </span>
+                )}
+              </p>
+              {item.customization && (
+                <p className="mt-0.5 truncate text-xs text-white/40">
+                  Customization: {item.customization}
+                </p>
+              )}
+            </div>
+            <p className="shrink-0 text-sm text-off-white">
+              {formatPrice(item.unitPrice * item.quantity)}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* Divider */}
+      <div className="mt-4 border-t border-white/10" />
+
+      {/* Totals */}
+      <div className="mt-4 space-y-2 text-sm">
+        <div className="flex justify-between">
+          <span className="text-white/50">Subtotal</span>
+          <span className="text-off-white">{formatPrice(order.subtotal)}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-white/50">Shipping</span>
+          <span className="text-off-white">
+            {order.shippingCost === 0 ? (
+              <span className="text-green-400">Free</span>
+            ) : (
+              formatPrice(order.shippingCost)
+            )}
+          </span>
+        </div>
+        {order.taxAmount > 0 && (
+          <div className="flex justify-between">
+            <span className="text-white/50">Tax</span>
+            <span className="text-off-white">
+              {formatPrice(order.taxAmount)}
+            </span>
+          </div>
+        )}
+        <div className="flex justify-between border-t border-white/10 pt-2">
+          <span className="font-semibold text-off-white">Total</span>
+          <span className="font-bold text-gold">
+            {formatPrice(order.total)}
+          </span>
+        </div>
+      </div>
+
+      {/* Confirmation email note */}
+      <p className="mt-4 text-center text-xs text-white/40">
+        A confirmation email has been sent to {order.customerEmail}.
+      </p>
+    </motion.div>
+  );
+}
+
+// ============================================
+// Processing Fallback (webhook hasn't fired yet)
+// ============================================
+
+function ProcessingFallback({ sessionId }: { sessionId: string }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.5 }}
+      className="mx-auto mt-8 max-w-md rounded-lg border border-gold/20 bg-gold/5 p-6 text-center"
+    >
+      <Loader2 className="mx-auto mb-3 h-6 w-6 animate-spin text-gold" />
+      <p className="text-sm font-medium text-gold">
+        Processing your order...
+      </p>
+      <p className="mt-2 text-xs text-white/50">
+        Your payment was successful. We are finalizing your order details.
+        This usually takes just a moment.
+      </p>
+      <div className="mt-4 rounded-md border border-white/10 bg-dark-gray px-3 py-2">
+        <p className="text-xs text-white/40">
+          Reference:{" "}
+          <span className="font-mono text-white/60">
+            {sessionId.length > 30
+              ? `${sessionId.slice(0, 15)}...${sessionId.slice(-10)}`
+              : sessionId}
+          </span>
+        </p>
+      </div>
+      <p className="mt-3 text-xs text-white/40">
+        A confirmation email will be sent once your order is confirmed.
+      </p>
+    </motion.div>
+  );
+}
+
+// ============================================
 // Success Content (with useSearchParams)
 // ============================================
 
@@ -165,8 +331,46 @@ function SuccessContent() {
   const { clearCart } = useCart();
   const hasCleared = useRef(false);
   const [showConfetti, setShowConfetti] = useState(true);
+  const [order, setOrder] = useState<OrderData | null>(null);
+  const [orderLoading, setOrderLoading] = useState(true);
+  const [orderNotFound, setOrderNotFound] = useState(false);
+  const retryCount = useRef(0);
+  const maxRetries = 5;
 
   const sessionId = searchParams.get("session_id");
+
+  // Fetch order details from the API
+  const fetchOrder = useCallback(async () => {
+    if (!sessionId) {
+      setOrderLoading(false);
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/orders?session_id=${encodeURIComponent(sessionId)}`);
+      if (res.ok) {
+        const data: OrderData = await res.json();
+        setOrder(data);
+        setOrderLoading(false);
+        setOrderNotFound(false);
+      } else if (res.status === 404) {
+        // Webhook may not have fired yet; retry a few times
+        if (retryCount.current < maxRetries) {
+          retryCount.current += 1;
+          setTimeout(fetchOrder, 2000); // retry after 2 seconds
+        } else {
+          setOrderNotFound(true);
+          setOrderLoading(false);
+        }
+      } else {
+        setOrderLoading(false);
+        setOrderNotFound(true);
+      }
+    } catch {
+      setOrderLoading(false);
+      setOrderNotFound(true);
+    }
+  }, [sessionId]);
 
   // Clear cart on mount (once)
   useEffect(() => {
@@ -175,6 +379,11 @@ function SuccessContent() {
       hasCleared.current = true;
     }
   }, [clearCart]);
+
+  // Fetch order on mount
+  useEffect(() => {
+    fetchOrder();
+  }, [fetchOrder]);
 
   // Hide confetti after animation
   useEffect(() => {
@@ -266,21 +475,27 @@ function SuccessContent() {
             crafting your items in our Bristol, TN workshop.
           </p>
 
-          {/* Session ID / Order Reference */}
+          {/* Order Details or Processing Fallback */}
           {sessionId && (
-            <div className="mx-auto mt-6 max-w-md rounded-lg border border-white/10 bg-dark-gray p-4">
-              <p className="text-xs font-medium uppercase tracking-wider text-white/40">
-                Order Reference
-              </p>
-              <p className="mt-1 font-mono text-sm text-gold">
-                {sessionId.length > 30
-                  ? `${sessionId.slice(0, 15)}...${sessionId.slice(-10)}`
-                  : sessionId}
-              </p>
-              <p className="mt-2 text-xs text-white/40">
-                A confirmation email has been sent with your order details.
-              </p>
-            </div>
+            <>
+              {orderLoading ? (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                  className="mx-auto mt-6 flex items-center justify-center gap-2"
+                >
+                  <Loader2 className="h-4 w-4 animate-spin text-gold" />
+                  <span className="text-sm text-white/50">
+                    Loading order details...
+                  </span>
+                </motion.div>
+              ) : order ? (
+                <OrderDetailsCard order={order} />
+              ) : orderNotFound ? (
+                <ProcessingFallback sessionId={sessionId} />
+              ) : null}
+            </>
           )}
         </motion.div>
 

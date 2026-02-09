@@ -33,7 +33,7 @@ export const PLACEHOLDER_PRODUCTS: PlaceholderProduct[] = [
   {
     id: "prod_mountain_phone_stand",
     name: "Smoky Mountain Phone Stand",
-    slug: "smoky-mountain-phone-stand",
+    slug: "mountain-phone-stand",
     shortDescription:
       "A beautifully detailed 3D-printed phone stand inspired by the Great Smoky Mountains ridgeline.",
     description:
@@ -125,7 +125,7 @@ export const PLACEHOLDER_PRODUCTS: PlaceholderProduct[] = [
   {
     id: "prod_smoky_mountain_lamp",
     name: "3D Printed Smoky Mountain Lamp",
-    slug: "3d-printed-smoky-mountain-lamp",
+    slug: "smoky-mountain-led-lamp",
     shortDescription:
       "Stunning lithophane-style mountain lamp that glows with the Smoky Mountain landscape.",
     description:
@@ -186,7 +186,7 @@ export const PLACEHOLDER_PRODUCTS: PlaceholderProduct[] = [
   {
     id: "prod_appalachian_trail_sign",
     name: "Appalachian Trail Marker Sign",
-    slug: "appalachian-trail-marker-sign",
+    slug: "appalachian-trail-bookmark",
     shortDescription:
       "Laser-engraved replica of the iconic AT blaze marker on reclaimed Tennessee cedar.",
     description:
@@ -217,7 +217,7 @@ export const PLACEHOLDER_PRODUCTS: PlaceholderProduct[] = [
   {
     id: "prod_bristol_sign_ornament",
     name: "Bristol Sign 3D Ornament",
-    slug: "bristol-sign-3d-ornament",
+    slug: "bristol-sign-replica",
     shortDescription:
       "A miniature 3D-printed replica of the famous Bristol, TN/VA sign - \"A Good Place to Live.\"",
     description:

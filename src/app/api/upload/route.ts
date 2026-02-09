@@ -29,7 +29,11 @@ const ALLOWED_EXTENSIONS: Record<string, string[]> = {
   ".png": ["image/png"],
 };
 
-const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+// TODO: Add rate limiting in production (e.g., upstash/ratelimit or similar)
+// to prevent abuse of this unauthenticated endpoint.
+// The upload endpoint is intentionally accessible without authentication
+// because the public quote/inquiry form allows anonymous file uploads.
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB (reduced from 50MB for security)
 const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
 
 /**

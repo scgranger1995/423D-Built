@@ -246,16 +246,29 @@ async function main() {
   console.log("Creating default site content...");
 
   const siteContent = [
-    { key: "hero_title", value: "Custom 3D Printing & Laser Engraving", type: "TEXT", section: "hero" },
-    { key: "hero_subtitle", value: "Handcrafted in Bristol, Tennessee.", type: "TEXT", section: "hero" },
+    // Hero section (matches admin content editor keys)
+    { key: "hero_heading", value: "Custom 3D Printing & Laser Engraving", type: "TEXT", section: "hero" },
+    { key: "hero_subheading", value: "Handcrafted in Bristol, Tennessee.", type: "TEXT", section: "hero" },
+    { key: "hero_tagline", value: "From concept to creation, we bring your ideas to life with precision 3D printing and laser engraving.", type: "TEXT", section: "hero" },
     { key: "hero_cta_text", value: "Shop Now", type: "TEXT", section: "hero" },
-    { key: "hero_cta_link", value: "/shop", type: "TEXT", section: "hero" },
-    { key: "about_title", value: "About 423D Built", type: "TEXT", section: "about" },
-    { key: "about_description", value: "423D Built is a small-batch 3D printing and laser engraving workshop based in Bristol, Tennessee.", type: "TEXT", section: "about" },
+    // About section
+    { key: "about_story", value: "423D Built is a small-batch 3D printing and laser engraving workshop based in Bristol, Tennessee.", type: "TEXT", section: "about" },
+    { key: "about_mission", value: "Our mission is to bring creative ideas to life through precision craftsmanship and modern technology.", type: "TEXT", section: "about" },
+    { key: "about_values", value: "Quality, Innovation, Community", type: "TEXT", section: "about" },
+    // Services section
+    { key: "services_heading", value: "Our Services", type: "TEXT", section: "services" },
+    { key: "services_3d_title", value: "3D Printing", type: "TEXT", section: "services" },
+    { key: "services_3d_description", value: "Custom 3D printing services using premium PLA, PETG, and specialty filaments.", type: "TEXT", section: "services" },
+    { key: "services_laser_title", value: "Laser Engraving", type: "TEXT", section: "services" },
+    { key: "services_laser_description", value: "Precision laser engraving on wood, glass, leather, and more.", type: "TEXT", section: "services" },
+    { key: "services_design_title", value: "Custom Design", type: "TEXT", section: "services" },
+    { key: "services_design_description", value: "Professional design services to turn your vision into a printable or engravable reality.", type: "TEXT", section: "services" },
+    // Contact section
     { key: "contact_email", value: "hello@423dbuilt.com", type: "TEXT", section: "contact" },
     { key: "contact_phone", value: "(423) 555-0423", type: "TEXT", section: "contact" },
     { key: "contact_address", value: "Bristol, TN 37620", type: "TEXT", section: "contact" },
-    { key: "footer_tagline", value: "Built in Bristol, TN - Layer by Layer.", type: "TEXT", section: "footer" },
+    { key: "contact_hours_weekday", value: "Mon-Fri: 9:00 AM - 6:00 PM", type: "TEXT", section: "contact" },
+    { key: "contact_hours_weekend", value: "Sat: 10:00 AM - 4:00 PM, Sun: Closed", type: "TEXT", section: "contact" },
   ];
 
   for (const content of siteContent) {

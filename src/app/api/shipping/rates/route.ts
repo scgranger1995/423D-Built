@@ -104,10 +104,10 @@ async function getShippoRates(
   toAddress: ShippingAddress,
   parcel: ParcelDetails
 ): Promise<FormattedRate[]> {
-  const shippoApiKey = process.env.SHIPPO_API_KEY;
+  const shippoApiKey = process.env.SHIPPO_API_TOKEN;
 
   if (!shippoApiKey) {
-    console.warn("SHIPPO_API_KEY not configured, using flat-rate fallback");
+    console.warn("SHIPPO_API_TOKEN not configured, using flat-rate fallback");
     return FLAT_RATE_OPTIONS;
   }
 

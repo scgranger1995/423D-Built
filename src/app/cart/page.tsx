@@ -39,6 +39,7 @@ function CartItemRow({
   item: {
     id: string;
     productId: string;
+    slug: string;
     name: string;
     price: number;
     image: string;
@@ -84,7 +85,7 @@ function CartItemRow({
           <div className="flex items-start justify-between gap-4">
             <div>
               <Link
-                href={`/shop/${item.productId}`}
+                href={`/shop/${item.slug}`}
                 className="text-base font-semibold text-off-white transition-colors hover:text-gold sm:text-lg"
               >
                 {item.name}

@@ -19,6 +19,7 @@ import {
   formatPrice,
   type PlaceholderProduct,
 } from "@/lib/placeholder-products";
+import { mapDbProduct } from "@/lib/products";
 import { useCart, type CartItem } from "@/hooks/useCart";
 
 // ============================================
@@ -52,66 +53,6 @@ const SORT_OPTIONS = [
 
 const ITEMS_PER_PAGE = 6;
 
-// Map database category values to placeholder category values
-const DB_CATEGORY_MAP: Record<string, PlaceholderProduct["category"]> = {
-  PRINTING_3D: "3d_print",
-  LASER_ENGRAVE: "laser_engrave",
-  DESIGN: "custom",
-  OTHER: "custom",
-};
-
-/**
- * Convert a raw database product (with JSON string fields) into
- * the PlaceholderProduct shape used by the existing UI components.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function mapDbProduct(raw: any): PlaceholderProduct {
-  const images: string[] = (() => {
-    try {
-      const parsed = JSON.parse(raw.images || "[]");
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  })();
-
-  const tags: string[] = (() => {
-    try {
-      const parsed = JSON.parse(raw.tags || "[]");
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
-  })();
-
-  return {
-    id: raw.id,
-    name: raw.name,
-    slug: raw.slug,
-    shortDescription: raw.shortDescription || "",
-    description: raw.description || "",
-    category: DB_CATEGORY_MAP[raw.category] || "custom",
-    price: raw.price,
-    compareAtPrice: raw.compareAtPrice ?? undefined,
-    material: raw.material || "Unknown",
-    color: raw.color ?? undefined,
-    dimensions: raw.dimensions || "",
-    weight: raw.weight ?? 0,
-    images,
-    featured: raw.featured ?? false,
-    active: raw.active ?? true,
-    inventory: raw.inventory ?? 0,
-    madeToOrder: raw.madeToOrder ?? false,
-    customizable: raw.customizable ?? false,
-    customizationPrompt: raw.customizationPrompt ?? undefined,
-    tags,
-    careInstructions: raw.careInstructions || "Handle with care.",
-    shippingInfo:
-      raw.shippingInfo ||
-      "Ships within 3-5 business days. Standard USPS shipping.",
-  };
-}
-
 // ============================================
 // Product Card Component
 // ============================================
@@ -132,6 +73,7 @@ function ProductCard({
 
     const cartItem: Omit<CartItem, "id"> = {
       productId: product.id,
+      slug: product.slug,
       name: product.name,
       price: product.price,
       image: product.images[0] || "/images/placeholder.jpg",

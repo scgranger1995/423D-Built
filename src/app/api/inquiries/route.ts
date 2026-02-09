@@ -149,71 +149,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-/**
- * GET /api/inquiries
- * Retrieve all service inquiries (admin only).
- * In production, this should be protected by authentication middleware.
- */
-export async function GET(request: NextRequest) {
-  try {
-    // Basic auth check via header (in production, use NextAuth session)
-    const authHeader = request.headers.get("authorization");
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get("page") || "1", 10);
-    const pageSize = parseInt(searchParams.get("pageSize") || "20", 10);
-    const status = searchParams.get("status") || undefined;
-    const serviceType = searchParams.get("serviceType") || undefined;
-
-    // Build where clause
-    const where: Record<string, unknown> = {};
-    if (status) where.status = status;
-    if (serviceType) where.serviceType = serviceType;
-
-    // Fetch inquiries with pagination
-    const [rawInquiries, total] = await Promise.all([
-      prisma.serviceInquiry.findMany({
-        where,
-        orderBy: { createdAt: "desc" },
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-      }),
-      prisma.serviceInquiry.count({ where }),
-    ]);
-
-    // Parse fileUrls from JSON string back to array for the response
-    const inquiries = rawInquiries.map((item) => ({
-      ...item,
-      fileUrls: (() => {
-        try {
-          return JSON.parse(item.fileUrls);
-        } catch {
-          return [];
-        }
-      })(),
-    }));
-
-    return NextResponse.json({
-      success: true,
-      data: {
-        items: inquiries,
-        total,
-        page,
-        pageSize,
-        totalPages: Math.ceil(total / pageSize),
-      },
-    });
-  } catch (error) {
-    console.error("Failed to fetch inquiries:", error);
-    return NextResponse.json(
-      { success: false, error: "Failed to retrieve inquiries" },
-      { status: 500 }
-    );
-  }
-}
+// GET handler removed: the previous implementation had a fake Bearer token
+// check that did not actually validate the token, making it insecure.
+// Inquiry listing for admins is served by /api/admin/orders?type=inquiries
+// which is properly protected by requireAdminApi().
