@@ -123,6 +123,7 @@ model ServiceInquiry {
   status         String   @default("NEW") // NEW | REVIEWED | QUOTED | ACCEPTED | IN_PROGRESS | COMPLETED | CANCELLED
   quotedPrice    Int?     @map("quoted_price")
   adminNotes     String?  @map("admin_notes")
+  adminResponse  String?  @map("admin_response")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 

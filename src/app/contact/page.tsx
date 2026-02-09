@@ -87,12 +87,28 @@ export default function ContactPage() {
     setStatus("sending");
 
     try {
+      // Map form subject values to valid API serviceType enum values
+      const serviceTypeMap: Record<string, string> = {
+        "general": "CONSULTATION",
+        "quote": "CONSULTATION",
+        "3d-printing": "PRINTING_3D",
+        "laser-engraving": "LASER_ENGRAVING",
+        "order": "CONSULTATION",
+        "other": "CONSULTATION",
+      };
+
       const res = await fetch("/api/inquiries", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...formData,
-          type: "contact",
+          customerName: formData.name,
+          customerEmail: formData.email,
+          customerPhone: formData.phone || undefined,
+          serviceType: serviceTypeMap[formData.subject] || "CONSULTATION",
+          description: formData.message,
+          quantity: 1,
+          timeline: "FLEXIBLE",
+          referralSource: "contact_form",
         }),
       });
 

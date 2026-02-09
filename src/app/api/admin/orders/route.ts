@@ -32,9 +32,9 @@ export async function GET(request: NextRequest) {
 
       if (search) {
         where.OR = [
-          { customerName: { contains: search, mode: "insensitive" } },
-          { customerEmail: { contains: search, mode: "insensitive" } },
-          { description: { contains: search, mode: "insensitive" } },
+          { customerName: { contains: search } },
+          { customerEmail: { contains: search } },
+          { description: { contains: search } },
         ];
       }
 
@@ -66,9 +66,9 @@ export async function GET(request: NextRequest) {
 
     if (search) {
       where.OR = [
-        { orderNumber: { contains: search, mode: "insensitive" } },
-        { customerName: { contains: search, mode: "insensitive" } },
-        { customerEmail: { contains: search, mode: "insensitive" } },
+        { orderNumber: { contains: search } },
+        { customerName: { contains: search } },
+        { customerEmail: { contains: search } },
       ];
     }
 
@@ -181,6 +181,9 @@ export async function PATCH(request: NextRequest) {
         updateData.adminNotes = existing?.adminNotes
           ? `${existing.adminNotes}\n${newNote}`
           : newNote;
+      }
+      if (body.adminResponse !== undefined) {
+        updateData.adminResponse = body.adminResponse;
       }
 
       const inquiry = await prisma.serviceInquiry.update({

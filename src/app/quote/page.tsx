@@ -223,28 +223,78 @@ export default function QuotePage() {
     handleFiles(e.dataTransfer.files);
   };
 
+  /* ---------- Upload files to /api/upload ---------- */
+  const uploadFiles = async (files: File[]): Promise<string[]> => {
+    const urls: string[] = [];
+    for (const file of files) {
+      const fd = new globalThis.FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: fd,
+      });
+      if (!res.ok) {
+        throw new Error(`Failed to upload file: ${file.name}`);
+      }
+      const json = await res.json();
+      if (json.success && json.data?.url) {
+        urls.push(json.data.url);
+      } else {
+        throw new Error(`Upload response missing URL for: ${file.name}`);
+      }
+    }
+    return urls;
+  };
+
+  /* ---------- Map form serviceType to API enum ---------- */
+  const mapServiceType = (value: string): string => {
+    const map: Record<string, string> = {
+      "3d-printing": "PRINTING_3D",
+      "laser-engraving": "LASER_ENGRAVING",
+      "design-services": "DESIGN",
+      "consultation": "CONSULTATION",
+    };
+    return map[value] || value;
+  };
+
   /* ---------- Submit ---------- */
   const handleSubmit = async () => {
     setStatus("sending");
     try {
+      // 1. Upload files first (if any)
+      let fileUrls: string[] = [];
+      if (formData.files.length > 0) {
+        fileUrls = await uploadFiles(formData.files);
+      }
+
+      // 2. Build description with laser-specific details appended
+      let fullDescription = formData.description;
+      if (formData.serviceType === "laser-engraving") {
+        if (formData.laserMaterial) {
+          fullDescription += `\n\nLaser Material: ${formData.laserMaterial}`;
+        }
+        if (formData.laserDimensions) {
+          fullDescription += `\nDimensions: ${formData.laserDimensions}`;
+        }
+        if (formData.laserDesignDesc) {
+          fullDescription += `\nDesign Description: ${formData.laserDesignDesc}`;
+        }
+      }
+
+      // 3. Map form fields to API-expected field names and values
       const submitData = {
-        serviceType: formData.serviceType,
-        description: formData.description,
-        quantity: formData.quantity,
-        timeline: formData.timeline,
-        material: formData.material,
-        laserMaterial: formData.laserMaterial,
-        laserDimensions: formData.laserDimensions,
-        laserDesignDesc: formData.laserDesignDesc,
-        fileCount: formData.files.length,
-        fileNames: formData.files.map((f) => f.name),
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        company: formData.company,
-        budget: formData.budget,
-        hearAbout: formData.hearAbout,
-        type: "quote",
+        customerName: formData.name,
+        customerEmail: formData.email,
+        customerPhone: formData.phone || undefined,
+        company: formData.company || undefined,
+        serviceType: mapServiceType(formData.serviceType),
+        description: fullDescription,
+        material: formData.material || undefined,
+        quantity: parseInt(formData.quantity, 10) || 1,
+        fileUrls,
+        timeline: formData.timeline.toUpperCase() || "STANDARD",
+        budget: formData.budget || undefined,
+        referralSource: formData.hearAbout || undefined,
       };
 
       const res = await fetch("/api/inquiries", {
