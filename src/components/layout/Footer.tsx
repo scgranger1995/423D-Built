@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Phone, Mail, MapPin, Instagram, Facebook, Clock } from "lucide-react";
@@ -75,18 +75,58 @@ const SERVICES = [
   { href: "/services#bulk-orders", label: "Bulk Orders" },
 ];
 
-const SOCIALS = [
-  { href: "https://instagram.com/423dbuilt", label: "Instagram", Icon: Instagram },
-  { href: "https://facebook.com/423dbuilt", label: "Facebook", Icon: Facebook },
-  { href: "https://tiktok.com/@423dbuilt", label: "TikTok", Icon: TikTokIcon },
-];
 
 /* ------------------------------------------------------------------ */
 /*  Footer                                                             */
 /* ------------------------------------------------------------------ */
 
+// Defaults used when DB has no content yet
+const DEFAULTS = {
+  contact_address: "Bristol, TN 37620",
+  contact_phone: "(423) 555-1234",
+  contact_email: "info@423dbuilt.com",
+  contact_hours_weekday: "Mon - Fri: 9 AM - 6 PM",
+  contact_hours_weekend: "Sat: 10 AM - 4 PM",
+  contact_social_facebook: "https://facebook.com/423dbuilt",
+  contact_social_instagram: "https://instagram.com/423dbuilt",
+  contact_social_tiktok: "https://tiktok.com/@423dbuilt",
+};
+
 export default function Footer() {
   const currentYear = new Date().getFullYear();
+  const [content, setContent] = useState<Record<string, string>>(DEFAULTS);
+
+  useEffect(() => {
+    fetch("/api/content?section=contact")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.content && Object.keys(data.content).length > 0) {
+          setContent((prev) => ({ ...prev, ...data.content }));
+        }
+      })
+      .catch(() => {
+        // Keep defaults on error
+      });
+  }, []);
+
+  const address = content.contact_address || DEFAULTS.contact_address;
+  const phone = content.contact_phone || DEFAULTS.contact_phone;
+  const email = content.contact_email || DEFAULTS.contact_email;
+  const hoursWeekday = content.contact_hours_weekday || DEFAULTS.contact_hours_weekday;
+  const hoursWeekend = content.contact_hours_weekend || DEFAULTS.contact_hours_weekend;
+  const socialFacebook = content.contact_social_facebook || DEFAULTS.contact_social_facebook;
+  const socialInstagram = content.contact_social_instagram || DEFAULTS.contact_social_instagram;
+  const socialTiktok = content.contact_social_tiktok || DEFAULTS.contact_social_tiktok;
+
+  const socials = [
+    { href: socialInstagram, label: "Instagram", Icon: Instagram },
+    { href: socialFacebook, label: "Facebook", Icon: Facebook },
+    { href: socialTiktok, label: "TikTok", Icon: TikTokIcon },
+  ];
+
+  // Format phone for tel: link
+  const phoneDigits = phone.replace(/\D/g, "");
+  const phoneHref = `tel:+1${phoneDigits}`;
 
   return (
     <footer
@@ -139,7 +179,7 @@ export default function Footer() {
 
             {/* Social icons */}
             <div className="flex items-center gap-3">
-              {SOCIALS.map(({ href, label, Icon }) => (
+              {socials.map(({ href, label, Icon }) => (
                 <a
                   key={label}
                   href={href}
@@ -226,25 +266,25 @@ export default function Footer() {
                   style={{ color: "#D4881C" }}
                 />
                 <span className="text-sm text-gray-400">
-                  Bristol, TN 37620
+                  {address}
                 </span>
               </li>
               <li>
                 <a
-                  href="tel:+14235551234"
+                  href={phoneHref}
                   className="flex items-center gap-3 text-sm text-gray-400 transition-colors duration-200 hover:text-[#E8A83E]"
                 >
                   <Phone size={16} className="flex-shrink-0" style={{ color: "#D4881C" }} />
-                  (423) 555-1234
+                  {phone}
                 </a>
               </li>
               <li>
                 <a
-                  href="mailto:info@423dbuilt.com"
+                  href={`mailto:${email}`}
                   className="flex items-center gap-3 text-sm text-gray-400 transition-colors duration-200 hover:text-[#E8A83E]"
                 >
                   <Mail size={16} className="flex-shrink-0" style={{ color: "#D4881C" }} />
-                  info@423dbuilt.com
+                  {email}
                 </a>
               </li>
               <li className="flex items-start gap-3">
@@ -254,8 +294,8 @@ export default function Footer() {
                   style={{ color: "#D4881C" }}
                 />
                 <div className="text-sm text-gray-400">
-                  <p>Mon - Fri: 9 AM - 6 PM</p>
-                  <p>Sat: 10 AM - 4 PM</p>
+                  <p>{hoursWeekday}</p>
+                  <p>{hoursWeekend}</p>
                 </div>
               </li>
             </ul>

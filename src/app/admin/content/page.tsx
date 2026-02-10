@@ -210,6 +210,12 @@ const SECTIONS: ContentSection[] = [
         type: "text",
         placeholder: "https://instagram.com/423dbuilt",
       },
+      {
+        key: "contact_social_tiktok",
+        label: "TikTok URL",
+        type: "text",
+        placeholder: "https://tiktok.com/@423dbuilt",
+      },
     ],
   },
 ];

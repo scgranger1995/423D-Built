@@ -14,8 +14,6 @@ import {
   Star,
 } from "lucide-react";
 import {
-  PLACEHOLDER_PRODUCTS,
-  filterProducts,
   formatPrice,
   type PlaceholderProduct,
 } from "@/lib/placeholder-products";
@@ -185,23 +183,27 @@ export default function ShopPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [displayCount, setDisplayCount] = useState(ITEMS_PER_PAGE);
 
-  // Database products state -- null means "not yet loaded"
-  const [dbProducts, setDbProducts] = useState<PlaceholderProduct[] | null>(null);
+  // Products from the database
+  const [products, setProducts] = useState<PlaceholderProduct[]>([]);
+  const [productsLoading, setProductsLoading] = useState(true);
 
   // Fetch products from the database API on mount
   const fetchProducts = useCallback(async () => {
+    setProductsLoading(true);
     try {
       const res = await fetch("/api/products?pageSize=50");
       if (!res.ok) throw new Error("API error");
       const json = await res.json();
       if (json.success && json.data?.items?.length > 0) {
-        setDbProducts(json.data.items.map(mapDbProduct));
+        setProducts(json.data.items.map(mapDbProduct));
+      } else {
+        setProducts([]);
       }
-      // If the API returns zero items, leave dbProducts as null
-      // so placeholder data is used instead
     } catch {
-      // API unavailable -- keep dbProducts as null to use placeholder fallback
-      console.warn("Could not fetch products from database, using placeholder data.");
+      console.warn("Could not fetch products from database.");
+      setProducts([]);
+    } finally {
+      setProductsLoading(false);
     }
   }, []);
 
@@ -209,8 +211,7 @@ export default function ShopPage() {
     fetchProducts();
   }, [fetchProducts]);
 
-  // Use DB products when available, otherwise fall back to placeholder data
-  const sourceProducts = dbProducts ?? PLACEHOLDER_PRODUCTS;
+  const sourceProducts = products;
 
   const filteredProducts = useMemo(() => {
     // Apply the same client-side filtering as the original filterProducts helper
@@ -510,7 +511,12 @@ export default function ShopPage() {
               products
             </p>
 
-            {filteredProducts.length === 0 ? (
+            {productsLoading ? (
+              <div className="flex flex-col items-center justify-center rounded-xl border border-white/10 bg-dark-gray py-20">
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-white/20 border-t-gold" />
+                <p className="mt-4 text-sm text-white/50">Loading products...</p>
+              </div>
+            ) : filteredProducts.length === 0 ? (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -521,14 +527,16 @@ export default function ShopPage() {
                   No products found
                 </h3>
                 <p className="mb-6 text-white/50">
-                  Try adjusting your filters or search terms.
+                  {hasActiveFilters ? "Try adjusting your filters or search terms." : "Check back soon for new products!"}
                 </p>
-                <button
-                  onClick={handleClearFilters}
-                  className="rounded-lg bg-gold px-6 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-gold-light"
-                >
-                  Clear Filters
-                </button>
+                {hasActiveFilters && (
+                  <button
+                    onClick={handleClearFilters}
+                    className="rounded-lg bg-gold px-6 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-gold-light"
+                  >
+                    Clear Filters
+                  </button>
+                )}
               </motion.div>
             ) : (
               <>
