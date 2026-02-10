@@ -16,9 +16,6 @@ import {
   Check,
 } from "lucide-react";
 import {
-  PLACEHOLDER_PRODUCTS,
-  getProductBySlug,
-  getRelatedProducts,
   formatPrice,
   type PlaceholderProduct,
 } from "@/lib/placeholder-products";
@@ -154,13 +151,12 @@ export default function ProductDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = use(params);
-  const placeholderProduct = getProductBySlug(slug);
   const { addItem } = useCart();
 
-  // Start with the placeholder product so the page renders immediately
-  const [product, setProduct] = useState<PlaceholderProduct | undefined>(placeholderProduct);
+  const [product, setProduct] = useState<PlaceholderProduct | undefined>(undefined);
+  const [loading, setLoading] = useState(true);
 
-  // Fetch the product from the database API, falling back to placeholder
+  // Fetch the product from the database API
   useEffect(() => {
     let cancelled = false;
     async function fetchProduct() {
@@ -171,56 +167,59 @@ export default function ProductDetailPage({
         if (json.success && json.data) {
           const mapped = mapDbProduct(json.data);
           if (!cancelled) setProduct(mapped);
+        } else {
+          if (!cancelled) setProduct(undefined);
         }
-        // If no data from API, keep the placeholder product
       } catch {
-        // API unavailable -- keep placeholder product
-        console.warn("Could not fetch product from database, using placeholder data.");
+        if (!cancelled) setProduct(undefined);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     }
     fetchProduct();
     return () => { cancelled = true; };
   }, [slug]);
 
-  // Related products: try to derive from the same source (DB products via API),
-  // but fall back to placeholder-based related products for simplicity
-  const [relatedProducts, setRelatedProducts] = useState<PlaceholderProduct[]>(
-    () => getRelatedProducts(slug, 4)
-  );
+  // Related products: fetch from the API using the current product's category
+  const [relatedProducts, setRelatedProducts] = useState<PlaceholderProduct[]>([]);
 
   useEffect(() => {
+    if (!product) return;
+    const category = product.category;
     let cancelled = false;
     async function fetchRelated() {
       try {
-        const res = await fetch("/api/products?pageSize=50");
+        const res = await fetch(`/api/products?pageSize=4&category=${encodeURIComponent(category)}`);
         if (!res.ok) throw new Error("API error");
         const json = await res.json();
         if (json.success && json.data?.items?.length > 0) {
           const allProducts: PlaceholderProduct[] = json.data.items.map(mapDbProduct);
-          const current = allProducts.find((p) => p.slug === slug);
-          if (current) {
-            const sameCategory = allProducts.filter(
-              (p) => p.category === current.category && p.slug !== slug
-            );
-            const others = allProducts.filter(
-              (p) => p.category !== current.category && p.slug !== slug
-            );
-            const related = [...sameCategory, ...others].slice(0, 4);
-            if (!cancelled && related.length > 0) setRelatedProducts(related);
-          }
+          const filtered = allProducts.filter((p) => p.slug !== slug);
+          if (!cancelled) setRelatedProducts(filtered);
         }
       } catch {
-        // Keep placeholder related products
+        // Related products unavailable
       }
     }
     fetchRelated();
     return () => { cancelled = true; };
-  }, [slug]);
+  }, [slug, product]);
 
   const [quantity, setQuantity] = useState(1);
   const [customization, setCustomization] = useState("");
   const [activeTab, setActiveTab] = useState<TabId>("description");
   const [addedToCart, setAddedToCart] = useState(false);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-dark">
+        <div className="text-center">
+          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-white/10 border-t-gold" />
+          <p className="text-white/50">Loading product...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!product) {
     return (

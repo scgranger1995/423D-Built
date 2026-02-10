@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -187,11 +187,16 @@ export default function ShopPage() {
   const [products, setProducts] = useState<PlaceholderProduct[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
 
-  // Fetch products from the database API on mount
-  const fetchProducts = useCallback(async () => {
+  // Debounce ref for search
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Fetch products from the database API
+  const fetchProducts = useCallback(async (searchQuery?: string) => {
     setProductsLoading(true);
     try {
-      const res = await fetch("/api/products?pageSize=50");
+      const params = new URLSearchParams({ pageSize: "50" });
+      if (searchQuery) params.set("search", searchQuery);
+      const res = await fetch(`/api/products?${params.toString()}`);
       if (!res.ok) throw new Error("API error");
       const json = await res.json();
       if (json.success && json.data?.items?.length > 0) {
@@ -207,9 +212,20 @@ export default function ShopPage() {
     }
   }, []);
 
+  // Debounced search effect
   useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current);
+    }
+    searchDebounceRef.current = setTimeout(() => {
+      fetchProducts(search);
+    }, 300);
+    return () => {
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current);
+      }
+    };
+  }, [search, fetchProducts]);
 
   const sourceProducts = products;
 

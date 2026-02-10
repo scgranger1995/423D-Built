@@ -179,11 +179,10 @@ export default function AdminInquiriesPage() {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      params.set("type", "inquiries");
       if (statusFilter) params.set("status", statusFilter);
       if (searchQuery) params.set("search", searchQuery);
 
-      const res = await fetch(`/api/admin/orders?${params.toString()}`);
+      const res = await fetch(`/api/admin/inquiries?${params.toString()}`);
       if (!res.ok) throw new Error("Failed to fetch inquiries");
       const data = await res.json();
       setInquiries(data.items || []);
@@ -236,10 +235,10 @@ export default function AdminInquiriesPage() {
     setError("");
     setShowStatusDropdown(false);
     try {
-      const res = await fetch("/api/admin/orders", {
+      const res = await fetch("/api/admin/inquiries", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, type: "inquiry", status: newStatus }),
+        body: JSON.stringify({ id, status: newStatus }),
       });
       if (!res.ok) throw new Error("Failed to update status");
       setSuccess(`Status updated to ${newStatus.replace(/_/g, " ")}`);
@@ -269,12 +268,11 @@ export default function AdminInquiriesPage() {
         setUpdatingId(null);
         return;
       }
-      const res = await fetch("/api/admin/orders", {
+      const res = await fetch("/api/admin/inquiries", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id,
-          type: "inquiry",
           quotedPrice: priceCents,
           status: "QUOTED",
         }),
@@ -302,10 +300,10 @@ export default function AdminInquiriesPage() {
     setSavingNotes(true);
     setError("");
     try {
-      const res = await fetch("/api/admin/orders", {
+      const res = await fetch("/api/admin/inquiries", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, type: "inquiry", adminNotes: noteText }),
+        body: JSON.stringify({ id, adminNotes: noteText }),
       });
       if (!res.ok) throw new Error("Failed to save notes");
       const data = await res.json();
@@ -332,12 +330,11 @@ export default function AdminInquiriesPage() {
     setSavingResponse(true);
     setError("");
     try {
-      const res = await fetch("/api/admin/orders", {
+      const res = await fetch("/api/admin/inquiries", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id,
-          type: "inquiry",
           adminResponse: responseText,
         }),
       });

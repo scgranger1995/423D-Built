@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     const productIds = items.map((item) => item.productId);
     const products = await prisma.product.findMany({
       where: { id: { in: productIds } },
-      select: { id: true, name: true, price: true, active: true, images: true },
+      select: { id: true, name: true, price: true, active: true, images: true, inventory: true, madeToOrder: true },
     });
 
     const productMap = new Map(products.map((p) => [p.id, p]));
@@ -80,7 +80,29 @@ export async function POST(request: NextRequest) {
     }
 
     // ------------------------------------------------------------------
-    // 3. Build Square line items (prices in cents -> BigInt)
+    // 2b. Inventory check (skip for made-to-order products)
+    // ------------------------------------------------------------------
+    for (const item of items) {
+      const product = productMap.get(item.productId)!;
+      if (!product.madeToOrder && product.inventory < item.quantity) {
+        return NextResponse.json(
+          { error: `Insufficient stock for: ${product.name}` },
+          { status: 400 }
+        );
+      }
+    }
+
+    // ------------------------------------------------------------------
+    // 3. Fetch dynamic tax rate from database settings
+    // ------------------------------------------------------------------
+    const taxSetting = await prisma.shippingSetting.findUnique({
+      where: { key: "tax_rate" },
+    });
+    const taxRate = taxSetting ? parseFloat(taxSetting.value) : 9.75;
+    const taxRateStr = String(taxRate);
+
+    // ------------------------------------------------------------------
+    // 4. Build Square line items (prices in cents -> BigInt)
     // ------------------------------------------------------------------
     const locationId = getSquareLocationId();
     const client = getSquareClient();
@@ -103,7 +125,7 @@ export async function POST(request: NextRequest) {
     });
 
     // ------------------------------------------------------------------
-    // 4. Create the Square order first so we know the orderId upfront
+    // 5. Create the Square order first so we know the orderId upfront
     // ------------------------------------------------------------------
     const orderResponse = await client.orders.create({
       order: {
@@ -112,7 +134,7 @@ export async function POST(request: NextRequest) {
         taxes: [
           {
             name: "TN Sales Tax",
-            percentage: "9.75",
+            percentage: taxRateStr,
             scope: "ORDER",
           },
         ],
@@ -132,7 +154,7 @@ export async function POST(request: NextRequest) {
     }
 
     // ------------------------------------------------------------------
-    // 5. Create a payment link referencing the existing order
+    // 6. Create a payment link referencing the existing order
     // ------------------------------------------------------------------
     const appUrl =
       process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
@@ -145,7 +167,7 @@ export async function POST(request: NextRequest) {
         taxes: [
           {
             name: "TN Sales Tax",
-            percentage: "9.75",
+            percentage: taxRateStr,
             scope: "ORDER",
           },
         ],
@@ -171,7 +193,7 @@ export async function POST(request: NextRequest) {
     }
 
     // ------------------------------------------------------------------
-    // 6. Return the checkout URL to the client
+    // 7. Return the checkout URL to the client
     // ------------------------------------------------------------------
     return NextResponse.json({ url: checkoutUrl });
   } catch (error: unknown) {

@@ -1,5 +1,15 @@
 import nodemailer from "nodemailer";
 
+// ---------- XSS prevention ----------
+
+export function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 // ============================================
 // Email Notification Utility
 // ============================================
@@ -161,7 +171,7 @@ export async function sendOrderConfirmation(
       (item) => `
         <tr>
           <td style="padding:8px 0;color:${BRAND.textPrimary};border-bottom:1px solid ${BRAND.border};">
-            ${item.productName}
+            ${escapeHtml(item.productName)}
           </td>
           <td style="padding:8px 0;text-align:center;color:${BRAND.textSecondary};border-bottom:1px solid ${BRAND.border};">
             ${item.quantity}
@@ -176,7 +186,7 @@ export async function sendOrderConfirmation(
   const body = `
     <h2 style="margin:0 0 8px;font-size:22px;color:${BRAND.gold};">Order Confirmed</h2>
     <p style="margin:0 0 24px;color:${BRAND.textSecondary};font-size:15px;">
-      Hi ${customerName}, thank you for your order!
+      Hi ${escapeHtml(customerName)}, thank you for your order!
     </p>
 
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
@@ -247,7 +257,7 @@ export async function sendInquiryConfirmation(
   const body = `
     <h2 style="margin:0 0 8px;font-size:22px;color:${BRAND.gold};">Inquiry Received</h2>
     <p style="margin:0 0 24px;color:${BRAND.textSecondary};font-size:15px;">
-      Hi ${customerName}, thanks for reaching out!
+      Hi ${escapeHtml(customerName)}, thanks for reaching out!
     </p>
 
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0"

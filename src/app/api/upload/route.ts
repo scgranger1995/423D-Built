@@ -8,6 +8,23 @@ import { v4 as uuidv4 } from "uuid";
 // File Upload Handler
 // ============================================
 
+// --- Rate Limiting ---
+const uploadRateLimit = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
+const RATE_LIMIT_MAX = 10; // 10 uploads per minute per IP
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = uploadRateLimit.get(ip);
+  if (!entry || now > entry.resetAt) {
+    uploadRateLimit.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
+    return true;
+  }
+  if (entry.count >= RATE_LIMIT_MAX) return false;
+  entry.count++;
+  return true;
+}
+
 // Allowed file extensions and their MIME types
 const ALLOWED_EXTENSIONS: Record<string, string[]> = {
   // 3D printing files
@@ -68,6 +85,17 @@ function generateSafeFilename(originalFilename: string): string {
  */
 export async function POST(request: NextRequest) {
   try {
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      request.headers.get("x-real-ip") ||
+      "unknown";
+    if (!checkRateLimit(ip)) {
+      return Response.json(
+        { error: "Too many uploads. Please try again later." },
+        { status: 429 }
+      );
+    }
+
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
 

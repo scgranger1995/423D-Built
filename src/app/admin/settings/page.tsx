@@ -141,11 +141,10 @@ export default function AdminSettingsPage() {
 
     setChangingPassword(true);
     try {
-      const res = await fetch("/api/admin/orders", {
+      const res = await fetch("/api/admin/settings", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          type: "password",
           currentPassword: passwordForm.currentPassword,
           newPassword: passwordForm.newPassword,
         }),

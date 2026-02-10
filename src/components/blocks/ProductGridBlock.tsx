@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Package, Loader2, ArrowRight } from "lucide-react";
+import { Package, Loader2, ArrowRight, AlertTriangle } from "lucide-react";
 import type { BlockSettings } from "./BlockRenderer";
 
 interface ProductGridContent {
@@ -144,32 +144,40 @@ export function ProductGridBlock({
 
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function fetchProducts() {
-      try {
-        let url = `/api/products?pageSize=${count}`;
-        if (category) {
-          url += `&category=${encodeURIComponent(category)}`;
-        }
-        if (showFeatured) {
-          url += `&featured=true`;
-        }
-        const res = await fetch(url);
+  function doFetchProducts() {
+    setLoading(true);
+    setError(null);
+
+    let url = `/api/products?pageSize=${count}`;
+    if (category) {
+      url += `&category=${encodeURIComponent(category)}`;
+    }
+    if (showFeatured) {
+      url += `&featured=true`;
+    }
+
+    fetch(url)
+      .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch");
-        const json = await res.json();
+        return res.json();
+      })
+      .then((json) => {
         if (json.success && json.data?.items) {
           setProducts(json.data.items.slice(0, count));
         }
-      } catch {
-        console.warn("Could not fetch products for ProductGridBlock");
-      } finally {
+      })
+      .catch(() => {
+        setError("Unable to load products. Please try again later.");
+      })
+      .finally(() => {
         setLoading(false);
-      }
-    }
+      });
+  }
 
-    fetchProducts();
-  }, [category, count, showFeatured]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { doFetchProducts(); }, [category, count, showFeatured]);
 
   return (
     <div
@@ -205,6 +213,22 @@ export function ProductGridBlock({
               className="h-8 w-8 animate-spin"
               style={{ color: "#D4881C" }}
             />
+          </div>
+        ) : error ? (
+          <div className="py-16 text-center">
+            <AlertTriangle className="mx-auto mb-4 h-12 w-12" style={{ color: "#D4881C" }} />
+            <p className="mb-4 text-lg" style={{ color: "#9ca3af" }}>{error}</p>
+            <button
+              onClick={() => doFetchProducts()}
+              className="inline-flex items-center gap-2 rounded-lg px-6 py-2.5 font-semibold transition-all duration-300"
+              style={{
+                backgroundColor: "transparent",
+                color: "#D4881C",
+                border: "1px solid rgba(212,136,28,0.4)",
+              }}
+            >
+              Retry
+            </button>
           </div>
         ) : products.length === 0 ? (
           <div className="py-16 text-center">

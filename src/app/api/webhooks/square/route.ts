@@ -5,6 +5,7 @@ import { getSquareClient } from "@/lib/square";
 import {
   sendOrderConfirmation,
   sendAdminNotification,
+  escapeHtml,
   type OrderItem,
 } from "@/lib/email";
 
@@ -228,27 +229,33 @@ async function handlePaymentCompleted(payment: SquarePayment) {
     };
   });
 
-  // Create order in database
+  // Create order + order items in a single transaction so both succeed or both fail
   const orderNumber = generateOrderNumber();
-  await prisma.order.create({
-    data: {
-      orderNumber,
-      customerEmail,
-      customerName,
-      customerPhone,
-      shippingAddress: JSON.stringify(shippingAddress),
-      subtotal,
-      shippingCost,
-      taxAmount,
-      total,
-      status: "PAID",
-      paymentStatus: "PAID",
-      squareOrderId: orderId,
-      squarePaymentId: paymentId,
-      items: {
-        create: orderItems,
+  await prisma.$transaction(async (tx) => {
+    const order = await tx.order.create({
+      data: {
+        orderNumber,
+        customerEmail,
+        customerName,
+        customerPhone,
+        shippingAddress: JSON.stringify(shippingAddress),
+        subtotal,
+        shippingCost,
+        taxAmount,
+        total,
+        status: "PAID",
+        paymentStatus: "PAID",
+        squareOrderId: orderId,
+        squarePaymentId: paymentId,
       },
-    },
+    });
+
+    await tx.orderItem.createMany({
+      data: orderItems.map((item) => ({
+        orderId: order.id,
+        ...item,
+      })),
+    });
   });
 
   console.log(
@@ -275,10 +282,10 @@ async function handlePaymentCompleted(payment: SquarePayment) {
 
   sendAdminNotification(
     `New Order: ${orderNumber}`,
-    `<p><strong>Customer:</strong> ${customerName} (${customerEmail})</p>
-     <p><strong>Order:</strong> ${orderNumber}</p>
+    `<p><strong>Customer:</strong> ${escapeHtml(customerName)} (${escapeHtml(customerEmail)})</p>
+     <p><strong>Order:</strong> ${escapeHtml(orderNumber)}</p>
      <p><strong>Total:</strong> $${(total / 100).toFixed(2)}</p>
-     <p><strong>Items:</strong> ${emailItems.map((i) => `${i.productName} x${i.quantity}`).join(", ")}</p>`
+     <p><strong>Items:</strong> ${emailItems.map((i) => `${escapeHtml(i.productName)} x${i.quantity}`).join(", ")}</p>`
   ).catch((err) =>
     console.error("[Email] Admin order notification failed:", err)
   );

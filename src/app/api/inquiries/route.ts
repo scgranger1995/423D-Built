@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { sendInquiryConfirmation, sendAdminNotification } from "@/lib/email";
+import { sendInquiryConfirmation, sendAdminNotification, escapeHtml } from "@/lib/email";
 
 // ============================================
 // Service Inquiry API
@@ -119,11 +119,11 @@ export async function POST(request: NextRequest) {
 
     sendAdminNotification(
       `New Inquiry: ${serviceType}`,
-      `<p><strong>Customer:</strong> ${trimmedName} (${trimmedEmail})</p>
-       <p><strong>Service:</strong> ${serviceType}</p>
-       <p><strong>Description:</strong> ${description.trim()}</p>
-       ${company ? `<p><strong>Company:</strong> ${company.trim()}</p>` : ""}
-       ${timeline ? `<p><strong>Timeline:</strong> ${timeline}</p>` : ""}`
+      `<p><strong>Customer:</strong> ${escapeHtml(trimmedName)} (${escapeHtml(trimmedEmail)})</p>
+       <p><strong>Service:</strong> ${escapeHtml(serviceType)}</p>
+       <p><strong>Description:</strong> ${escapeHtml(description.trim())}</p>
+       ${company ? `<p><strong>Company:</strong> ${escapeHtml(company.trim())}</p>` : ""}
+       ${timeline ? `<p><strong>Timeline:</strong> ${escapeHtml(timeline)}</p>` : ""}`
     ).catch((err) => console.error("[Email] Admin inquiry notification failed:", err));
 
     return NextResponse.json(

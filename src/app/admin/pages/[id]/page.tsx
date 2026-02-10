@@ -1388,6 +1388,17 @@ export default function PageEditorPage() {
     if (pageId) fetchPageData();
   }, [pageId, fetchPageData]);
 
+  // Warn before navigating away with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasChanges) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasChanges]);
+
   // --- Block Operations ---
 
   const toggleExpanded = (blockId: string) => {
@@ -1518,18 +1529,24 @@ export default function PageEditorPage() {
       }
 
       // Save all blocks with updated content and sort orders
-      for (const block of blocks) {
-        const content = blockContents[block.id] || {};
-        const res = await fetch(`/api/admin/pages/blocks?id=${block.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sortOrder: block.sortOrder,
-            content: JSON.stringify(content),
-            settings: block.settings,
-          }),
-        });
-        if (!res.ok) throw new Error(`Failed to save block ${block.id}`);
+      const results = await Promise.allSettled(
+        blocks.map(async (block) => {
+          const content = blockContents[block.id] || {};
+          const res = await fetch(`/api/admin/pages/blocks?id=${block.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              sortOrder: block.sortOrder,
+              content: JSON.stringify(content),
+              settings: block.settings,
+            }),
+          });
+          if (!res.ok) throw new Error(`Block ${block.id}`);
+        })
+      );
+      const failed = results.filter((r) => r.status === "rejected");
+      if (failed.length > 0) {
+        throw new Error(`Failed to save ${failed.length} block(s)`);
       }
 
       // Also reorder blocks

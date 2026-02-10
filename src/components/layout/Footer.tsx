@@ -83,7 +83,7 @@ const SERVICES = [
 // Defaults used when DB has no content yet
 const DEFAULTS = {
   contact_address: "Bristol, TN 37620",
-  contact_phone: "(423) 555-1234",
+  contact_phone: "",
   contact_email: "info@423dbuilt.com",
   contact_hours_weekday: "Mon - Fri: 9 AM - 6 PM",
   contact_hours_weekend: "Sat: 10 AM - 4 PM",
@@ -259,45 +259,53 @@ export default function Footer() {
               Contact Us
             </h4>
             <ul className="space-y-3.5">
-              <li className="flex items-start gap-3">
-                <MapPin
-                  size={16}
-                  className="mt-0.5 flex-shrink-0"
-                  style={{ color: "#D4881C" }}
-                />
-                <span className="text-sm text-gray-400">
-                  {address}
-                </span>
-              </li>
-              <li>
-                <a
-                  href={phoneHref}
-                  className="flex items-center gap-3 text-sm text-gray-400 transition-colors duration-200 hover:text-[#E8A83E]"
-                >
-                  <Phone size={16} className="flex-shrink-0" style={{ color: "#D4881C" }} />
-                  {phone}
-                </a>
-              </li>
-              <li>
-                <a
-                  href={`mailto:${email}`}
-                  className="flex items-center gap-3 text-sm text-gray-400 transition-colors duration-200 hover:text-[#E8A83E]"
-                >
-                  <Mail size={16} className="flex-shrink-0" style={{ color: "#D4881C" }} />
-                  {email}
-                </a>
-              </li>
-              <li className="flex items-start gap-3">
-                <Clock
-                  size={16}
-                  className="mt-0.5 flex-shrink-0"
-                  style={{ color: "#D4881C" }}
-                />
-                <div className="text-sm text-gray-400">
-                  <p>{hoursWeekday}</p>
-                  <p>{hoursWeekend}</p>
-                </div>
-              </li>
+              {address && (
+                <li className="flex items-start gap-3">
+                  <MapPin
+                    size={16}
+                    className="mt-0.5 flex-shrink-0"
+                    style={{ color: "#D4881C" }}
+                  />
+                  <span className="text-sm text-gray-400">
+                    {address}
+                  </span>
+                </li>
+              )}
+              {phone && (
+                <li>
+                  <a
+                    href={phoneHref}
+                    className="flex items-center gap-3 text-sm text-gray-400 transition-colors duration-200 hover:text-[#E8A83E]"
+                  >
+                    <Phone size={16} className="flex-shrink-0" style={{ color: "#D4881C" }} />
+                    {phone}
+                  </a>
+                </li>
+              )}
+              {email && (
+                <li>
+                  <a
+                    href={`mailto:${email}`}
+                    className="flex items-center gap-3 text-sm text-gray-400 transition-colors duration-200 hover:text-[#E8A83E]"
+                  >
+                    <Mail size={16} className="flex-shrink-0" style={{ color: "#D4881C" }} />
+                    {email}
+                  </a>
+                </li>
+              )}
+              {(hoursWeekday || hoursWeekend) && (
+                <li className="flex items-start gap-3">
+                  <Clock
+                    size={16}
+                    className="mt-0.5 flex-shrink-0"
+                    style={{ color: "#D4881C" }}
+                  />
+                  <div className="text-sm text-gray-400">
+                    {hoursWeekday && <p>{hoursWeekday}</p>}
+                    {hoursWeekend && <p>{hoursWeekend}</p>}
+                  </div>
+                </li>
+              )}
             </ul>
           </div>
         </div>

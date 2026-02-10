@@ -16,6 +16,7 @@ import {
   Menu,
   X,
   ChevronRight,
+  ClipboardList,
 } from "lucide-react";
 
 // ============================================
@@ -31,6 +32,7 @@ interface AdminShellProps {
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin/quotes", label: "Quotes", icon: ClipboardList },
   { href: "/admin/products", label: "Products", icon: Package },
   { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
   { href: "/admin/inquiries", label: "Inquiries", icon: MessageSquare },

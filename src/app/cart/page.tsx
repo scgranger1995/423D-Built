@@ -223,7 +223,10 @@ export default function CartPage() {
           </div>
           {items.length > 0 && (
             <button
-              onClick={clearCart}
+              onClick={() => {
+                if (!confirm("Are you sure you want to clear your cart? This cannot be undone.")) return;
+                clearCart();
+              }}
               className="text-sm text-white/40 transition-colors hover:text-red-400"
             >
               Clear Cart
