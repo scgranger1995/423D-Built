@@ -55,7 +55,7 @@ interface PageData {
 interface BlockData {
   id: string;
   pageId: string;
-  blockType: string;
+  type: string;
   sortOrder: number;
   content: string; // JSON string
   settings: string; // JSON string
@@ -864,11 +864,19 @@ function TestimonialsBlockEditor({
   content: Record<string, unknown>;
   onChange: (c: Record<string, unknown>) => void;
 }) {
-  const items = (content.items as Array<{ name: string; role: string; quote: string }>) || [];
+  // Normalize: seed data uses "testimonials" array with "text"/"location" fields
+  // Editor standardizes to "items" array with "quote"/"role" fields
+  const rawItems = (content.items || content.testimonials) as Array<Record<string, string>> | undefined;
+  const items: Array<{ name: string; role: string; quote: string }> = (rawItems || []).map((t) => ({
+    name: t.name || "",
+    role: t.role || t.location || "",
+    quote: t.quote || t.text || "",
+  }));
 
   const addItem = () => {
     onChange({
       ...content,
+      testimonials: undefined,
       items: [...items, { name: "", role: "", quote: "" }],
     });
   };
@@ -877,15 +885,27 @@ function TestimonialsBlockEditor({
     const updated = items.map((item, i) =>
       i === index ? { ...item, [field]: value } : item
     );
-    onChange({ ...content, items: updated });
+    onChange({ ...content, testimonials: undefined, items: updated });
   };
 
   const removeItem = (index: number) => {
-    onChange({ ...content, items: items.filter((_, i) => i !== index) });
+    onChange({ ...content, testimonials: undefined, items: items.filter((_, i) => i !== index) });
   };
 
   return (
     <div className="space-y-4">
+      {content.heading !== undefined && (
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1">Section Heading</label>
+          <input
+            type="text"
+            value={(content.heading as string) || ""}
+            onChange={(e) => onChange({ ...content, heading: e.target.value })}
+            className="w-full px-4 py-2.5 bg-[#0a0a0a] border border-[#333] rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#D4881C]"
+            placeholder="What Our Customers Say"
+          />
+        </div>
+      )}
       {items.map((item, i) => (
         <div key={i} className="p-4 bg-[#0a0a0a] border border-[#333] rounded-lg space-y-3">
           <div className="flex items-center justify-between">
@@ -911,13 +931,13 @@ function TestimonialsBlockEditor({
             </div>
             <div>
               <label className="block text-[11px] font-medium text-gray-500 mb-1">
-                Role / Company
+                Role / Location
               </label>
               <input
                 type="text"
                 value={item.role}
                 onChange={(e) => updateItem(i, "role", e.target.value)}
-                placeholder="CEO, Acme Inc."
+                placeholder="Johnson City, TN"
                 className="w-full px-3 py-2 bg-[#111] border border-[#333] rounded-lg text-xs text-white placeholder-gray-500 focus:outline-none focus:border-[#D4881C]"
               />
             </div>
@@ -953,11 +973,18 @@ function StatsBlockEditor({
   content: Record<string, unknown>;
   onChange: (c: Record<string, unknown>) => void;
 }) {
-  const items = (content.items as Array<{ value: string; label: string; suffix: string }>) || [];
+  // Normalize: seed data uses "stats" array, editor standardizes to "items"
+  const rawItems = (content.items || content.stats) as Array<{ value: string | number; label: string; suffix: string }> | undefined;
+  const items: Array<{ value: string; label: string; suffix: string }> = (rawItems || []).map((s) => ({
+    value: String(s.value ?? ""),
+    label: s.label || "",
+    suffix: s.suffix || "",
+  }));
 
   const addItem = () => {
     onChange({
       ...content,
+      stats: undefined,
       items: [...items, { value: "", label: "", suffix: "" }],
     });
   };
@@ -966,11 +993,11 @@ function StatsBlockEditor({
     const updated = items.map((item, i) =>
       i === index ? { ...item, [field]: value } : item
     );
-    onChange({ ...content, items: updated });
+    onChange({ ...content, stats: undefined, items: updated });
   };
 
   const removeItem = (index: number) => {
-    onChange({ ...content, items: items.filter((_, i) => i !== index) });
+    onChange({ ...content, stats: undefined, items: items.filter((_, i) => i !== index) });
   };
 
   return (
@@ -1221,7 +1248,7 @@ function BlockCard({
   onDelete: () => void;
   onContentChange: (c: Record<string, unknown>) => void;
 }) {
-  const Icon = getBlockIcon(block.blockType);
+  const Icon = getBlockIcon(block.type);
 
   return (
     <div className="bg-[#111] border border-[#222] rounded-xl overflow-hidden">
@@ -1238,7 +1265,7 @@ function BlockCard({
           <Icon size={14} style={{ color: "#D4881C" }} />
         </div>
         <span className="text-sm font-medium text-white flex-1">
-          {getBlockLabel(block.blockType)}
+          {getBlockLabel(block.type)}
         </span>
 
         {/* Move / Delete controls */}
@@ -1283,7 +1310,7 @@ function BlockCard({
       {isExpanded && (
         <div className="px-4 pb-4 pt-2 border-t border-[#222]">
           <BlockContentEditor
-            blockType={block.blockType}
+            blockType={block.type}
             content={content}
             onChange={onContentChange}
           />
@@ -1328,7 +1355,8 @@ export default function PageEditorPage() {
       // Fetch page info
       const pageRes = await fetch(`/api/admin/pages?id=${pageId}`);
       if (!pageRes.ok) throw new Error("Failed to fetch page");
-      const pageData = await pageRes.json();
+      const pageJson = await pageRes.json();
+      const pageData = pageJson.page || pageJson;
       setPage(pageData);
       setPageTitle(pageData.title || "");
 
@@ -1336,7 +1364,7 @@ export default function PageEditorPage() {
       const blocksRes = await fetch(`/api/admin/pages/blocks?pageId=${pageId}`);
       if (!blocksRes.ok) throw new Error("Failed to fetch blocks");
       const blocksData = await blocksRes.json();
-      const fetchedBlocks: BlockData[] = blocksData.items || [];
+      const fetchedBlocks: BlockData[] = blocksData.blocks || [];
 
       // Sort by sortOrder
       fetchedBlocks.sort((a, b) => a.sortOrder - b.sortOrder);
@@ -1400,7 +1428,7 @@ export default function PageEditorPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           pageId,
-          blockType,
+          type: blockType,
           sortOrder: newSortOrder,
           content: JSON.stringify(blockDef.defaultContent),
           settings: JSON.stringify({}),
@@ -1408,7 +1436,8 @@ export default function PageEditorPage() {
       });
 
       if (!res.ok) throw new Error("Failed to add block");
-      const newBlock = await res.json();
+      const newBlockRes = await res.json();
+      const newBlock = newBlockRes.block || newBlockRes;
 
       // Insert into local state
       const updatedBlocks = [...blocks, newBlock].sort(
@@ -1491,11 +1520,10 @@ export default function PageEditorPage() {
       // Save all blocks with updated content and sort orders
       for (const block of blocks) {
         const content = blockContents[block.id] || {};
-        const res = await fetch(`/api/admin/pages/blocks`, {
+        const res = await fetch(`/api/admin/pages/blocks?id=${block.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            id: block.id,
             sortOrder: block.sortOrder,
             content: JSON.stringify(content),
             settings: block.settings,
@@ -1633,7 +1661,7 @@ export default function PageEditorPage() {
             {/* Preview link */}
             {page.published && (
               <Link
-                href={`/${page.slug}`}
+                href={page.slug === "home" ? "/" : `/${page.slug}`}
                 target="_blank"
                 className="p-2 text-gray-400 hover:text-white hover:bg-[#222] rounded-lg transition-colors"
                 title="Preview page"

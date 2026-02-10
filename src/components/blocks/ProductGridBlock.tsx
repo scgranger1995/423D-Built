@@ -4,12 +4,19 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Package, Loader2 } from "lucide-react";
+import { Package, Loader2, ArrowRight } from "lucide-react";
 import type { BlockSettings } from "./BlockRenderer";
 
 interface ProductGridContent {
   category?: string;
   count?: number;
+  heading?: string;
+  subheading?: string;
+  showFeatured?: boolean;
+  maxProducts?: number;
+  ctaText?: string;
+  ctaLink?: string;
+  showAllProducts?: boolean;
 }
 
 interface ProductItem {
@@ -128,7 +135,12 @@ export function ProductGridBlock({
 }) {
   const c = content as unknown as ProductGridContent;
   const category = c.category || "";
-  const count = c.count || 6;
+  const count = c.maxProducts || c.count || 6;
+  const heading = c.heading || "";
+  const subheading = c.subheading || "";
+  const showFeatured = c.showFeatured || false;
+  const ctaText = c.ctaText || "";
+  const ctaLink = c.ctaLink || "/shop";
 
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -139,6 +151,9 @@ export function ProductGridBlock({
         let url = `/api/products?pageSize=${count}`;
         if (category) {
           url += `&category=${encodeURIComponent(category)}`;
+        }
+        if (showFeatured) {
+          url += `&featured=true`;
         }
         const res = await fetch(url);
         if (!res.ok) throw new Error("Failed to fetch");
@@ -154,7 +169,7 @@ export function ProductGridBlock({
     }
 
     fetchProducts();
-  }, [category, count]);
+  }, [category, count, showFeatured]);
 
   return (
     <div
@@ -164,6 +179,26 @@ export function ProductGridBlock({
       }}
     >
       <div className={settings.fullWidth ? "mx-auto max-w-7xl" : ""}>
+        {heading && (
+          <h2
+            className="mb-4 text-center text-3xl font-bold text-white md:text-4xl"
+            style={{ fontFamily: "var(--font-heading)" }}
+          >
+            {heading}
+          </h2>
+        )}
+
+        {subheading && (
+          <p
+            className="mx-auto mb-12 max-w-3xl text-center text-lg"
+            style={{ color: "#9ca3af" }}
+          >
+            {subheading}
+          </p>
+        )}
+
+        {!subheading && heading && <div className="mb-12" />}
+
         {loading ? (
           <div className="flex items-center justify-center py-16">
             <Loader2
@@ -177,10 +212,35 @@ export function ProductGridBlock({
             <p style={{ color: "#9ca3af" }}>No products available at this time.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {products.map((product, index) => (
               <ProductCard key={product.id} product={product} index={index} />
             ))}
+          </div>
+        )}
+
+        {ctaText && (
+          <div className="mt-12 text-center">
+            <Link
+              href={ctaLink}
+              className="inline-flex items-center gap-2 rounded-lg px-8 py-3 text-lg font-semibold transition-all duration-300"
+              style={{
+                backgroundColor: "transparent",
+                color: "#D4881C",
+                border: "1px solid rgba(212,136,28,0.3)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "rgba(212,136,28,0.1)";
+                e.currentTarget.style.borderColor = "#D4881C";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "transparent";
+                e.currentTarget.style.borderColor = "rgba(212,136,28,0.3)";
+              }}
+            >
+              {ctaText}
+              <ArrowRight className="h-5 w-5" />
+            </Link>
           </div>
         )}
       </div>

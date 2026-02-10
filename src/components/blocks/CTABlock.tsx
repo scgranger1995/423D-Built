@@ -6,8 +6,11 @@ import type { BlockSettings } from "./BlockRenderer";
 interface CTAContent {
   heading?: string;
   description?: string;
+  subheading?: string;
   buttonText?: string;
   buttonLink?: string;
+  ctaText?: string;
+  ctaLink?: string;
 }
 
 export function CTABlock({
@@ -19,9 +22,9 @@ export function CTABlock({
 }) {
   const c = content as unknown as CTAContent;
   const heading = c.heading || "";
-  const description = c.description || "";
-  const buttonText = c.buttonText || "";
-  const buttonLink = c.buttonLink || "/";
+  const description = c.description || c.subheading || "";
+  const buttonText = c.buttonText || c.ctaText || "";
+  const buttonLink = c.buttonLink || c.ctaLink || "/";
 
   return (
     <div

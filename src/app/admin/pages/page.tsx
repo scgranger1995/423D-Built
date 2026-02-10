@@ -56,7 +56,11 @@ export default function AdminPagesPage() {
       const res = await fetch(`/api/admin/pages?${params.toString()}`);
       if (!res.ok) throw new Error("Failed to fetch pages");
       const data = await res.json();
-      setPages(data.items || []);
+      const mappedPages = (data.pages || []).map((p: Record<string, unknown>) => ({
+        ...p,
+        blocks: (p._count as { blocks?: number })?.blocks || 0,
+      }));
+      setPages(mappedPages as PageItem[]);
     } catch {
       setError("Failed to load pages");
     } finally {
@@ -418,7 +422,7 @@ export default function AdminPagesPage() {
                       <div className="flex items-center justify-end gap-1">
                         {page.published && (
                           <Link
-                            href={`/${page.slug}`}
+                            href={page.slug === "home" ? "/" : `/${page.slug}`}
                             target="_blank"
                             className="p-2 text-gray-400 hover:text-white hover:bg-[#222] rounded-lg transition-colors"
                             title="View Page"

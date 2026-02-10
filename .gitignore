@@ -64,3 +64,4 @@ Desktop.ini
 # --- Misc ---
 *.pem
 *.log
+.vercel

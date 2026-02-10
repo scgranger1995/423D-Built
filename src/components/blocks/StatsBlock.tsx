@@ -12,6 +12,7 @@ interface StatItem {
 
 interface StatsContent {
   items?: StatItem[];
+  stats?: StatItem[];
 }
 
 function AnimatedCounter({
@@ -64,7 +65,11 @@ export function StatsBlock({
   settings: BlockSettings;
 }) {
   const c = content as unknown as StatsContent;
-  const items = Array.isArray(c.items) ? c.items : [];
+  const items = Array.isArray(c.items)
+    ? c.items
+    : Array.isArray(c.stats)
+    ? c.stats
+    : [];
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-60px" });
 

@@ -11,6 +11,8 @@ interface FAQItem {
 }
 
 interface FAQContent {
+  heading?: string;
+  subheading?: string;
   items?: FAQItem[];
 }
 
@@ -78,6 +80,8 @@ export function FAQBlock({
   settings: BlockSettings;
 }) {
   const c = content as unknown as FAQContent;
+  const heading = c.heading || "";
+  const subheading = c.subheading || "";
   const items = Array.isArray(c.items) ? c.items : [];
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
@@ -90,17 +94,39 @@ export function FAQBlock({
         backgroundColor: settings.backgroundColor || "transparent",
       }}
     >
-      <div className={`space-y-4 ${settings.fullWidth ? "mx-auto max-w-3xl" : ""}`}>
-        {items.map((item, index) => (
-          <FAQAccordionItem
-            key={index}
-            item={item}
-            isOpen={openIndex === index}
-            onToggle={() =>
-              setOpenIndex(openIndex === index ? null : index)
-            }
-          />
-        ))}
+      <div className={settings.fullWidth ? "mx-auto max-w-3xl" : ""}>
+        {heading && (
+          <h2
+            className="mb-4 text-center text-3xl font-bold text-white md:text-4xl"
+            style={{ fontFamily: "var(--font-heading)" }}
+          >
+            {heading}
+          </h2>
+        )}
+
+        {subheading && (
+          <p
+            className="mx-auto mb-12 max-w-2xl text-center text-lg"
+            style={{ color: "#9ca3af" }}
+          >
+            {subheading}
+          </p>
+        )}
+
+        {!subheading && heading && <div className="mb-12" />}
+
+        <div className="space-y-4">
+          {items.map((item, index) => (
+            <FAQAccordionItem
+              key={index}
+              item={item}
+              isOpen={openIndex === index}
+              onToggle={() =>
+                setOpenIndex(openIndex === index ? null : index)
+              }
+            />
+          ))}
+        </div>
       </div>
     </div>
   );

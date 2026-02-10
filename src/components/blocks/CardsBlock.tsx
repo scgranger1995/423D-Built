@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import Link from "next/link";
 import { motion, useInView } from "framer-motion";
 import * as LucideIcons from "lucide-react";
 import type { BlockSettings } from "./BlockRenderer";
@@ -9,16 +10,19 @@ interface CardItem {
   icon?: string;
   title?: string;
   description?: string;
+  link?: string;
+  linkText?: string;
 }
 
 interface CardsContent {
   title?: string;
+  heading?: string;
+  subheading?: string;
   cards?: CardItem[];
 }
 
 function getIcon(name: string): React.ComponentType<{ className?: string }> | null {
   if (!name) return null;
-  // Normalize: "shopping-cart" => "ShoppingCart", "ShoppingCart" => "ShoppingCart"
   const pascalCase = name
     .split(/[-_\s]+/)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
@@ -39,7 +43,8 @@ export function CardsBlock({
   settings: BlockSettings;
 }) {
   const c = content as unknown as CardsContent;
-  const title = c.title || "";
+  const title = c.heading || c.title || "";
+  const subheading = c.subheading || "";
   const cards = Array.isArray(c.cards) ? c.cards : [];
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-60px" });
@@ -59,18 +64,29 @@ export function CardsBlock({
       <div className={settings.fullWidth ? "mx-auto max-w-7xl" : ""}>
         {title && (
           <h2
-            className="mb-12 text-center text-3xl font-bold text-white md:text-4xl"
+            className="mb-4 text-center text-3xl font-bold text-white md:text-4xl"
             style={{ fontFamily: "var(--font-heading)" }}
           >
             {title}
           </h2>
         )}
 
+        {subheading && (
+          <p
+            className="mx-auto mb-12 max-w-3xl text-center text-lg"
+            style={{ color: "#9ca3af" }}
+          >
+            {subheading}
+          </p>
+        )}
+
+        {!subheading && title && <div className="mb-12" />}
+
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {cards.map((card, index) => {
             const IconComponent = getIcon(card.icon || "");
 
-            return (
+            const cardContent = (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, y: 30 }}
@@ -122,8 +138,27 @@ export function CardsBlock({
                     {card.description}
                   </p>
                 )}
+
+                {card.linkText && (
+                  <span
+                    className="mt-4 inline-flex items-center text-sm font-medium transition-colors"
+                    style={{ color: "#D4881C" }}
+                  >
+                    {card.linkText} &rarr;
+                  </span>
+                )}
               </motion.div>
             );
+
+            if (card.link) {
+              return (
+                <Link key={index} href={card.link} className="block">
+                  {cardContent}
+                </Link>
+              );
+            }
+
+            return cardContent;
           })}
         </div>
       </div>

@@ -29,6 +29,28 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const includeBlocks = searchParams.get("includeBlocks") === "true";
     const slug = searchParams.get("slug");
+    const id = searchParams.get("id");
+
+    // Fetch single page by id
+    if (id) {
+      const page = await prisma.page.findUnique({
+        where: { id },
+        include: {
+          blocks: {
+            orderBy: { sortOrder: "asc" },
+          },
+          _count: {
+            select: { blocks: true },
+          },
+        },
+      });
+
+      if (!page) {
+        return Response.json({ error: "Page not found" }, { status: 404 });
+      }
+
+      return Response.json({ page });
+    }
 
     // Fetch single page by slug
     if (slug) {
