@@ -150,3 +150,32 @@ model ShippingSetting {
   @@map("shipping_settings")
 }
 
+model Page {
+  id          String      @id @default(cuid())
+  title       String
+  slug        String      @unique
+  description String?
+  published   Boolean     @default(false)
+  isSystem    Boolean     @default(false) @map("is_system")
+  sortOrder   Int         @default(0) @map("sort_order")
+  blocks      PageBlock[]
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  @@map("pages")
+}
+
+model PageBlock {
+  id        String   @id @default(cuid())
+  pageId    String   @map("page_id")
+  page      Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  type      String   // hero | text | image | gallery | cards | cta | contact_form | product_grid | faq | testimonials | custom_html | stats
+  content   String   @default("{}") // JSON object with block-specific content
+  settings  String   @default("{}") // JSON object with display settings (background, padding, etc.)
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("page_blocks")
+}
+

@@ -9,6 +9,7 @@ import {
   ShoppingCart,
   MessageSquare,
   FileText,
+  Layout,
   Truck,
   Settings,
   LogOut,
@@ -34,6 +35,7 @@ const navItems = [
   { href: "/admin/orders", label: "Orders", icon: ShoppingCart },
   { href: "/admin/inquiries", label: "Inquiries", icon: MessageSquare },
   { href: "/admin/content", label: "Content", icon: FileText },
+  { href: "/admin/pages", label: "Pages", icon: Layout },
   { href: "/admin/shipping", label: "Shipping", icon: Truck },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
@@ -91,6 +93,7 @@ export default function AdminShell({
           fixed top-0 left-0 z-50 h-full w-64 bg-[#111111] border-r border-[#222]
           transform transition-transform duration-200 ease-in-out
           lg:translate-x-0 lg:static lg:z-auto
+          flex flex-col
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
@@ -114,7 +117,7 @@ export default function AdminShell({
         </div>
 
         {/* Navigation */}
-        <nav className="p-4 space-y-1">
+        <nav className="flex-1 overflow-auto p-4 space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.href);
@@ -151,7 +154,7 @@ export default function AdminShell({
         </nav>
 
         {/* Sidebar Footer */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-[#222]">
+        <div className="p-4 border-t border-[#222]">
           <div className="flex items-center gap-3 px-2 mb-3">
             <div
               className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-black"
