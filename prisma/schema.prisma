@@ -1,7 +1,6 @@
 // ============================================
 // 423D Built - Prisma Schema
-// SQLite for local development
-// Switch to PostgreSQL for production
+// PostgreSQL via Neon
 // ============================================
 
 generator client {
@@ -9,7 +8,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
