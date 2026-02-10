@@ -365,9 +365,11 @@ export async function POST(request: NextRequest) {
 
     // Handle events
     switch (event.type) {
-      case "payment.completed": {
+      case "payment.updated": {
         const payment = event.data.object.payment as unknown as SquarePayment;
-        await handlePaymentCompleted(payment);
+        if (payment.status === "COMPLETED") {
+          await handlePaymentCompleted(payment);
+        }
         break;
       }
 
